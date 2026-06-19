@@ -511,3 +511,126 @@ img {
     margin: 0;
   }
 }
+
+/* ================================================
+   統計情報画面（Twitterアナリティクス風）
+   ================================================ */
+.stats-lead {
+  color: var(--muted);
+  margin: 4px 0 18px;
+}
+
+.stats-subtitle {
+  margin: 22px 0 12px;
+  font-size: 18px;
+}
+
+/* 絞り込みフォーム */
+.stats-filter-form {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 8px 0 20px;
+}
+
+.stats-filter-form .filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-filter-form label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stats-filter-form select {
+  width: auto;
+  min-width: 160px;
+  margin: 0;
+}
+
+.stats-filter-form button {
+  height: 40px;
+}
+
+/* 現在の選択条件 */
+.condition-label {
+  margin: 14px 0;
+  font-weight: 700;
+  color: var(--main-dark);
+}
+
+/* 指標カードのグリッド */
+.stats-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.stats-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+/* 指標カード（数値を大きく見せる） */
+.stats-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.stats-card-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.stats-card-value {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--main-dark);
+  line-height: 1.1;
+}
+
+.stats-card-value .unit {
+  font-size: 18px;
+  margin-left: 2px;
+}
+
+/* グラフカード（大きめに見せる） */
+.stats-chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin: 22px 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.stats-chart-card .chart-box {
+  width: 100%;
+  min-height: 420px;
+  height: 420px;
+  border: 0;
+  padding: 0;
+}
+
+@media (max-width: 600px) {
+  .stats-card-value {
+    font-size: 28px;
+  }
+
+  .stats-chart-card .chart-box {
+    min-height: 320px;
+    height: 320px;
+  }
+}

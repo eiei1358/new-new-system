@@ -6,9 +6,8 @@
 <title>統計情報</title>
     <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
     <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
-    <!-- Chart.js（CDN）。読み込めない環境でもテーブルは表示される -->
+    <!-- Chart.js（CDN）。読み込めない環境でも指標カードは表示される -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 </head>
 <body>
 
@@ -38,38 +37,45 @@
 
     <main class="admin-main">
         <h1>統計情報</h1>
+        <p class="stats-lead">システムの利用状況を確認し、今後の改善計画に活用するための画面です。</p>
 
-        <!-- 期間区分・カテゴリ・グラフ種類の選択フォーム -->
-        <form class="period-form" method="get" th:action="@{/admin/statistics}">
-            <label for="period">期間区分</label>
-            <select id="period" name="period">
-                <option value="daily"   th:selected="${period == 'daily'}">日別</option>
-                <option value="monthly" th:selected="${period == 'monthly'}">月別</option>
-            </select>
-
-            <label for="categoryId">カテゴリ</label>
-            <select id="categoryId" name="categoryId">
-                <option value="" th:selected="${selectedCategoryId == null}">全カテゴリ</option>
-                <option th:each="category : ${categories}"
-                        th:value="${category.categoryId}"
-                        th:text="${category.name}"
-                        th:selected="${selectedCategoryId != null and selectedCategoryId == category.categoryId}">
-                </option>
-            </select>
-
-            <span class="graph-type">
-                <label>
-                    <input type="radio" name="graphType" value="bar" th:checked="${graphType == 'bar'}"> 棒グラフ
-                </label>
-                <label>
-                    <input type="radio" name="graphType" value="line" th:checked="${graphType == 'line'}"> 折れ線グラフ
-                </label>
-            </span>
-
+        <!-- 絞り込みフォーム（期間区分・カテゴリ） -->
+        <form class="stats-filter-form" method="get" th:action="@{/admin/statistics}">
+            <div class="filter-item">
+                <label for="period">期間区分</label>
+                <select id="period" name="period">
+                    <option value="daily"   th:selected="${period == 'daily'}">日別</option>
+                    <option value="monthly" th:selected="${period == 'monthly'}">月別</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label for="categoryId">カテゴリ</label>
+                <select id="categoryId" name="categoryId">
+                    <option value="" th:selected="${selectedCategoryId == null}">全カテゴリ</option>
+                    <option th:each="category : ${categories}"
+                            th:value="${category.categoryId}"
+                            th:text="${category.name}"
+                            th:selected="${selectedCategoryId != null and selectedCategoryId == category.categoryId}">
+                    </option>
+                </select>
+            </div>
             <button type="submit">表示</button>
         </form>
 
-        <!-- 現在の選択条件 -->
+        <!-- 全体指標（カテゴリ選択で変化しない） -->
+        <h2 class="stats-subtitle">全体指標</h2>
+        <div class="stats-overview-grid">
+            <div class="stats-card">
+                <div class="stats-card-label">社員数</div>
+                <div class="stats-card-value" th:text="${userCount}">0</div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-label">通報数</div>
+                <div class="stats-card-value" th:text="${reportCount}">0</div>
+            </div>
+        </div>
+
+        <!-- 選択条件 -->
         <p class="condition-label">
             表示条件：
             <span th:text="${period == 'monthly' ? '月別' : '日別'}">日別</span>
@@ -77,124 +83,58 @@
             <span th:text="${selectedCategoryName}">全カテゴリ</span>
         </p>
 
-        <!-- サマリーカード -->
-        <section class="stats-section">
-            <h2>サマリー</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" th:text="${userCount}">0</div>
-                    <div class="stat-label">社員数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" th:text="${itemCount}">0</div>
-                    <div class="stat-label">総出品数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" th:text="${dealCount}">0</div>
-                    <div class="stat-label">成約数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value"><span th:text="${dealRate}">0.0</span>%</div>
-                    <div class="stat-label">成約率</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" th:text="${applicationCount}">0</div>
-                    <div class="stat-label">応募数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" th:text="${transactionCount}">0</div>
-                    <div class="stat-label">取引数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" th:text="${messageCount}">0</div>
-                    <div class="stat-label">メッセージ数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" th:text="${reportCount}">0</div>
-                    <div class="stat-label">通報数</div>
-                </div>
+        <!-- 選択カテゴリの主要指標（カテゴリ選択で変化する） -->
+        <h2 class="stats-subtitle">主要指標</h2>
+        <div class="stats-kpi-grid">
+            <div class="stats-card">
+                <div class="stats-card-label">出品数</div>
+                <div class="stats-card-value" th:text="${itemCount}">0</div>
             </div>
-        </section>
+            <div class="stats-card">
+                <div class="stats-card-label">成約数</div>
+                <div class="stats-card-value" th:text="${dealCount}">0</div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-label">成約率</div>
+                <div class="stats-card-value"><span th:text="${dealRate}">0.0</span><span class="unit">%</span></div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-label">応募数</div>
+                <div class="stats-card-value" th:text="${applicationCount}">0</div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-label">取引数</div>
+                <div class="stats-card-value" th:text="${transactionCount}">0</div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-label">メッセージ数</div>
+                <div class="stats-card-value" th:text="${messageCount}">0</div>
+            </div>
+        </div>
 
-        <!-- Chart.js グラフ表示 -->
-        <section class="stats-section">
-            <h2>
-                グラフ表示
+        <!-- 折れ線グラフ（出品数・成約数・メッセージ数の推移） -->
+        <div class="stats-chart-card">
+            <h2 class="stats-subtitle">
+                利用状況の推移
                 <span th:text="${period == 'monthly' ? '（月別）' : '（日別）'}">（日別）</span>
             </h2>
             <p th:if="${#lists.isEmpty(chartLabelList)}" class="no-data">データがありません。</p>
             <div class="chart-box" th:unless="${#lists.isEmpty(chartLabelList)}">
                 <canvas id="statisticsChart"></canvas>
             </div>
-        </section>
-
-        <!-- カテゴリ別統計 -->
-        <section class="stats-section">
-            <h2>カテゴリ別統計</h2>
-
-            <p th:if="${#lists.isEmpty(categoryStats)}" class="no-data">データがありません。</p>
-
-            <table th:unless="${#lists.isEmpty(categoryStats)}">
-                <thead>
-                <tr>
-                    <th>カテゴリ</th>
-                    <th>出品数</th>
-                    <th>成約数</th>
-                    <th>成約率</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="row : ${categoryStats}">
-                    <td th:text="${row.categoryName}">カテゴリ</td>
-                    <td th:text="${row.listingCount}">0</td>
-                    <td th:text="${row.dealCount}">0</td>
-                    <td><span class="rate-badge" th:text="${row.rate} + '%'">0.0%</span></td>
-                </tr>
-                </tbody>
-            </table>
-        </section>
-
-        <!-- 時系列統計 -->
-        <section class="stats-section">
-            <h2>
-                時系列統計
-                <span th:text="${period == 'monthly' ? '（月別）' : '（日別）'}">（日別）</span>
-            </h2>
-
-            <p th:if="${#lists.isEmpty(timeStats)}" class="no-data">データがありません。</p>
-
-            <table th:unless="${#lists.isEmpty(timeStats)}">
-                <thead>
-                <tr>
-                    <th>期間</th>
-                    <th>出品数</th>
-                    <th>成約数</th>
-                    <th>成約率</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="row : ${timeStats}">
-                    <td th:text="${row.label}">2026-06-19</td>
-                    <td th:text="${row.listingCount}">0</td>
-                    <td th:text="${row.dealCount}">0</td>
-                    <td><span class="rate-badge" th:text="${row.rate} + '%'">0.0%</span></td>
-                </tr>
-                </tbody>
-            </table>
-        </section>
+        </div>
 
     </main>
 
 </div>
 
-<!-- ThymeleafからJavaScriptへ値を渡し、Chart.jsで描画する -->
+<!-- ThymeleafからJavaScriptへ値を渡し、Chart.jsで折れ線グラフを描画する -->
 <script th:inline="javascript">
     /*<![CDATA[*/
-    const graphType            = /*[[${graphType}]]*/ 'bar';
-    const chartLabelList       = /*[[${chartLabelList}]]*/ [];
-    const chartListingCountList= /*[[${chartListingCountList}]]*/ [];
-    const chartDealCountList   = /*[[${chartDealCountList}]]*/ [];
-    const chartRateList        = /*[[${chartRateList}]]*/ [];
+    const chartLabelList        = /*[[${chartLabelList}]]*/ [];
+    const chartListingCountList = /*[[${chartListingCountList}]]*/ [];
+    const chartDealCountList    = /*[[${chartDealCountList}]]*/ [];
+    const chartMessageCountList = /*[[${chartMessageCountList}]]*/ [];
 
     // Chart.js が読み込めていて canvas が存在し、データがある場合のみ描画
     if (typeof Chart !== 'undefined'
@@ -204,33 +144,46 @@
         const ctx = document.getElementById('statisticsChart');
 
         new Chart(ctx, {
-            type: graphType,
+            type: 'line',
             data: {
                 labels: chartLabelList,
                 datasets: [
                     {
                         label: '出品数',
                         data: chartListingCountList,
-                        backgroundColor: 'rgba(47, 125, 79, 0.6)',
                         borderColor: 'rgba(47, 125, 79, 1)',
-                        borderWidth: 2
+                        backgroundColor: 'rgba(47, 125, 79, 0.15)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: false
                     },
                     {
                         label: '成約数',
                         data: chartDealCountList,
-                        backgroundColor: 'rgba(217, 138, 31, 0.6)',
                         borderColor: 'rgba(217, 138, 31, 1)',
-                        borderWidth: 2
+                        backgroundColor: 'rgba(217, 138, 31, 0.15)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: false
+                    },
+                    {
+                        label: 'メッセージ数',
+                        data: chartMessageCountList,
+                        borderColor: 'rgba(45, 110, 200, 1)',
+                        backgroundColor: 'rgba(45, 110, 200, 0.15)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: false
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    datalabels: { display: false },
-                    title: { display: true, text: '出品数・成約数の推移' },
-                    legend: { display: true }
+                    title: { display: true, text: '出品数・成約数・メッセージ数の推移' },
+                    legend: { display: true, position: 'top' }
                 },
                 scales: {
                     y: { beginAtZero: true, ticks: { precision: 0 } }

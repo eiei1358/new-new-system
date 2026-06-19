@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -766,14 +767,12 @@ public class AuthController {
 	}
 
 	// 統計情報（正式URL: /admin/statistics、/auth/stats は互換用に残す）
-	// period   : daily / monthly（時系列の集計単位）
+	// period   : daily / monthly（折れ線グラフの横軸単位）
 	// categoryId : 絞り込むカテゴリ。null・空なら全カテゴリ
-	// graphType  : bar / line（Chart.js のグラフ種類）
 	@GetMapping({ "/admin/statistics", "/auth/stats" })
 	public String stats(
 			@RequestParam(required = false, defaultValue = "daily") String period,
 			@RequestParam(required = false) Integer categoryId,
-			@RequestParam(required = false, defaultValue = "bar") String graphType,
 			HttpSession session,
 			Model model) {
 		if (!isAdmin(session)) {
@@ -783,11 +782,6 @@ public class AuthController {
 		// period が null・空・想定外の場合は日別をデフォルトにする
 		if (period == null || period.isBlank() || !"monthly".equals(period)) {
 			period = "daily";
-		}
-
-		// graphType が想定外の場合は棒グラフをデフォルトにする
-		if (!"line".equals(graphType) && !"bar".equals(graphType)) {
-			graphType = "bar";
 		}
 
 		// 選択カテゴリ名を解決（該当が無ければ全カテゴリ扱いに戻す）
@@ -807,135 +801,101 @@ public class AuthController {
 		long dealCount = countDeals(categoryId);
 		double dealRate = calculateRate(dealCount, itemCount);
 
-		List<Map<String, Object>> categoryStats = categoryStats(categoryId);
-		List<Map<String, Object>> timeStats = timeStats(period, categoryId);
+		// 折れ線グラフ用の時系列データを組み立てる
+		// 出品数・成約数は items.created_at 基準、メッセージ数は messages.created_at 基準。
+		// 軸が異なるためラベルを統合して 0 埋めで揃える（TreeMap でラベル昇順）。
+		Map<String, long[]> series = new TreeMap<>(); // [0]=出品数 [1]=成約数 [2]=メッセージ数
+		for (Map<String, Object> row : itemTimeSeries(period, categoryId)) {
+			long[] v = series.computeIfAbsent(String.valueOf(row.get("label")), k -> new long[3]);
+			v[0] = toLong(row.get("listingCount"));
+			v[1] = toLong(row.get("dealCount"));
+		}
+		for (Map<String, Object> row : messageTimeSeries(period, categoryId)) {
+			long[] v = series.computeIfAbsent(String.valueOf(row.get("label")), k -> new long[3]);
+			v[2] = toLong(row.get("messageCount"));
+		}
 
-		long maxListingCount = maxValue(categoryStats, timeStats, "listingCount");
-		long maxDealCount = maxValue(categoryStats, timeStats, "dealCount");
-
-		// Chart.js 用のリスト（時系列データから組み立てる）
 		List<String> chartLabelList = new ArrayList<>();
 		List<Long> chartListingCountList = new ArrayList<>();
 		List<Long> chartDealCountList = new ArrayList<>();
-		List<Double> chartRateList = new ArrayList<>();
-		for (Map<String, Object> row : timeStats) {
-			chartLabelList.add(String.valueOf(row.get("label")));
-			chartListingCountList.add(toLong(row.get("listingCount")));
-			chartDealCountList.add(toLong(row.get("dealCount")));
-			chartRateList.add(toDouble(row.get("rate")));
+		List<Long> chartMessageCountList = new ArrayList<>();
+		for (Map.Entry<String, long[]> e : series.entrySet()) {
+			chartLabelList.add(e.getKey());
+			chartListingCountList.add(e.getValue()[0]);
+			chartDealCountList.add(e.getValue()[1]);
+			chartMessageCountList.add(e.getValue()[2]);
 		}
 
 		model.addAttribute("loginUser", getLoginUser(session));
 		model.addAttribute("period", period);
-		model.addAttribute("graphType", graphType);
 
 		// カテゴリ選択フォーム用
 		model.addAttribute("categories", categoryOptions());
 		model.addAttribute("selectedCategoryId", categoryId);
 		model.addAttribute("selectedCategoryName", selectedCategoryName);
 
-		// サマリーカード
+		// 全体指標（カテゴリ選択で変化しない）
 		model.addAttribute("userCount", countTable("users"));
-		model.addAttribute("categoryCount", countTable("categories"));
+		model.addAttribute("reportCount", countTable("reports"));
+
+		// 選択カテゴリ指標（カテゴリ選択で変化する）
 		model.addAttribute("itemCount", itemCount);
 		model.addAttribute("dealCount", dealCount);
 		model.addAttribute("dealRate", dealRate);
 		model.addAttribute("applicationCount", countByCategory("applications", categoryId));
 		model.addAttribute("transactionCount", countByCategory("transactions", categoryId));
 		model.addAttribute("messageCount", countByCategory("messages", categoryId));
-		model.addAttribute("reportCount", countTable("reports"));
 
-		// 既存互換の集計値（テンプレートで使わなくても害はない）
-		model.addAttribute("completedItemCount", countCompletedDeals());
-		model.addAttribute("ngKeywordCount", countTable("ng_keywords"));
-		model.addAttribute("searchKeywordCount", countTable("search_keywords"));
-
-		// カテゴリ別・時系列
-		model.addAttribute("categoryStats", categoryStats);
-		model.addAttribute("timeStats", timeStats);
-
-		// Chart.js 用データ
+		// 折れ線グラフ用データ
 		model.addAttribute("chartLabelList", chartLabelList);
 		model.addAttribute("chartListingCountList", chartListingCountList);
 		model.addAttribute("chartDealCountList", chartDealCountList);
-		model.addAttribute("chartRateList", chartRateList);
-
-		// グラフ用の最大値（0除算・空データ対策で最低1を渡す）
-		model.addAttribute("maxListingCount", maxListingCount == 0 ? 1 : maxListingCount);
-		model.addAttribute("maxDealCount", maxDealCount == 0 ? 1 : maxDealCount);
+		model.addAttribute("chartMessageCountList", chartMessageCountList);
 		return "infomation";
 	}
 
 
-	// カテゴリ別統計（成約数は transactions.status = 1 で集計、categoryId で絞り込み可）
-	private List<Map<String, Object>> categoryStats(Integer categoryId) {
-		return jdbcTemplate.queryForList("""
-				SELECT
-					c.name AS "categoryName",
-					COUNT(DISTINCT i.item_id) AS "listingCount",
-					COUNT(DISTINCT t.transaction_id) AS "dealCount",
-					CASE
-						WHEN COUNT(DISTINCT i.item_id) = 0 THEN 0
-						ELSE ROUND(
-							COUNT(DISTINCT t.transaction_id) * 100.0
-							/ COUNT(DISTINCT i.item_id), 1)
-					END AS "rate"
-				FROM categories c
-				LEFT JOIN items i
-					ON i.category_id = c.category_id
-				LEFT JOIN transactions t
-					ON t.item_id = i.item_id
-					AND t.status = 1
-				WHERE (:categoryId IS NULL OR c.category_id = :categoryId)
-				GROUP BY c.category_id, c.name
-				ORDER BY c.category_id ASC
-				""", categoryParam(categoryId));
+	// 折れ線グラフ用：出品数・成約数の時系列（items.created_at 基準、categoryId で絞り込み可）
+	// 成約数は transactions.status = 1 を items.created_at 基準で集計する。
+	private List<Map<String, Object>> itemTimeSeries(String period, Integer categoryId) {
+		String labelExpr = "monthly".equals(period)
+				? "TO_CHAR(DATE_TRUNC('month', i.created_at), 'YYYY-MM')"
+				: "TO_CHAR(CAST(i.created_at AS DATE), 'YYYY-MM-DD')";
+		String groupExpr = "monthly".equals(period)
+				? "DATE_TRUNC('month', i.created_at)"
+				: "CAST(i.created_at AS DATE)";
+
+		return jdbcTemplate.queryForList(
+				"SELECT " + labelExpr + " AS \"label\", "
+				+ "  COUNT(DISTINCT i.item_id) AS \"listingCount\", "
+				+ "  COUNT(DISTINCT t.transaction_id) AS \"dealCount\" "
+				+ "FROM items i "
+				+ "LEFT JOIN transactions t ON t.item_id = i.item_id AND t.status = 1 "
+				+ "WHERE (:categoryId IS NULL OR i.category_id = :categoryId) "
+				+ "GROUP BY " + groupExpr + " "
+				+ "ORDER BY " + groupExpr + " ASC",
+				categoryParam(categoryId));
 	}
 
-	// 時系列統計（period = monthly なら月別、それ以外は日別、categoryId で絞り込み可）
-	// 出品数と同じ期間軸で比較するため、成約数も items.created_at 基準で集計する
-	private List<Map<String, Object>> timeStats(String period, Integer categoryId) {
-		if ("monthly".equals(period)) {
-			return jdbcTemplate.queryForList("""
-					SELECT
-						TO_CHAR(DATE_TRUNC('month', i.created_at), 'YYYY-MM') AS "label",
-						COUNT(DISTINCT i.item_id) AS "listingCount",
-						COUNT(DISTINCT t.transaction_id) AS "dealCount",
-						CASE
-							WHEN COUNT(DISTINCT i.item_id) = 0 THEN 0
-							ELSE ROUND(
-								COUNT(DISTINCT t.transaction_id) * 100.0
-								/ COUNT(DISTINCT i.item_id), 1)
-						END AS "rate"
-					FROM items i
-					LEFT JOIN transactions t
-						ON t.item_id = i.item_id
-						AND t.status = 1
-					WHERE (:categoryId IS NULL OR i.category_id = :categoryId)
-					GROUP BY DATE_TRUNC('month', i.created_at)
-					ORDER BY DATE_TRUNC('month', i.created_at) ASC
-					""", categoryParam(categoryId));
-		}
+	// 折れ線グラフ用：メッセージ数の時系列（messages.created_at 基準、categoryId で絞り込み可）
+	// categoryId 指定時は messages.item_id → items.category_id で絞り込む（item_id=NULL は除外）。
+	private List<Map<String, Object>> messageTimeSeries(String period, Integer categoryId) {
+		String labelExpr = "monthly".equals(period)
+				? "TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM')"
+				: "TO_CHAR(CAST(m.created_at AS DATE), 'YYYY-MM-DD')";
+		String groupExpr = "monthly".equals(period)
+				? "DATE_TRUNC('month', m.created_at)"
+				: "CAST(m.created_at AS DATE)";
 
-		return jdbcTemplate.queryForList("""
-				SELECT
-					TO_CHAR(CAST(i.created_at AS DATE), 'YYYY-MM-DD') AS "label",
-					COUNT(DISTINCT i.item_id) AS "listingCount",
-					COUNT(DISTINCT t.transaction_id) AS "dealCount",
-					CASE
-						WHEN COUNT(DISTINCT i.item_id) = 0 THEN 0
-						ELSE ROUND(
-							COUNT(DISTINCT t.transaction_id) * 100.0
-							/ COUNT(DISTINCT i.item_id), 1)
-					END AS "rate"
-				FROM items i
-				LEFT JOIN transactions t
-					ON t.item_id = i.item_id
-					AND t.status = 1
-				WHERE (:categoryId IS NULL OR i.category_id = :categoryId)
-				GROUP BY CAST(i.created_at AS DATE)
-				ORDER BY CAST(i.created_at AS DATE) ASC
-				""", categoryParam(categoryId));
+		return jdbcTemplate.queryForList(
+				"SELECT " + labelExpr + " AS \"label\", "
+				+ "  COUNT(*) AS \"messageCount\" "
+				+ "FROM messages m "
+				+ "WHERE (:categoryId IS NULL OR EXISTS ("
+				+ "  SELECT 1 FROM items i WHERE i.item_id = m.item_id AND i.category_id = :categoryId)) "
+				+ "GROUP BY " + groupExpr + " "
+				+ "ORDER BY " + groupExpr + " ASC",
+				categoryParam(categoryId));
 	}
 
 	// カテゴリ選択フォーム用の一覧
@@ -1379,10 +1339,6 @@ public class AuthController {
 		return value instanceof Number number ? number.longValue() : 0L;
 	}
 
-	private double toDouble(Object value) {
-		return value instanceof Number number ? number.doubleValue() : 0.0;
-	}
-
 	// 譲渡完了数: completed_at IS NOT NULL の件数（参考値）
 	private long countCompletedDeals() {
 		Long count = jdbcTemplate.queryForObject("""
@@ -1399,24 +1355,6 @@ public class AuthController {
 			return 0.0;
 		}
 		return Math.round(numerator * 1000.0 / denominator) / 10.0;
-	}
-
-	// 集計結果リストから指定キーの最大値を求める（グラフのスケール用）
-	private long maxValue(
-			List<Map<String, Object>> categoryStats,
-			List<Map<String, Object>> timeStats,
-			String key) {
-
-		long max = 0;
-		for (List<Map<String, Object>> list : List.of(categoryStats, timeStats)) {
-			for (Map<String, Object> row : list) {
-				Object value = row.get(key);
-				if (value instanceof Number number && number.longValue() > max) {
-					max = number.longValue();
-				}
-			}
-		}
-		return max;
 	}
 
 	private boolean isAdmin(HttpSession session) {
