@@ -767,12 +767,14 @@ public class AuthController {
 	}
 
 	// 統計情報（正式URL: /admin/statistics、/auth/stats は互換用に残す）
-	// period   : daily / monthly（折れ線グラフの横軸単位）
+	// period     : daily / monthly（折れ線グラフの横軸単位）
 	// categoryId : 絞り込むカテゴリ。null・空なら全カテゴリ
+	// targetMonth: yyyy-MM。null・空・形式不正なら全期間
 	@GetMapping({ "/admin/statistics", "/auth/stats" })
 	public String stats(
 			@RequestParam(required = false, defaultValue = "daily") String period,
 			@RequestParam(required = false) Integer categoryId,
+			@RequestParam(required = false) String targetMonth,
 			HttpSession session,
 			Model model) {
 		if (!isAdmin(session)) {
@@ -782,6 +784,11 @@ public class AuthController {
 		// period が null・空・想定外の場合は日別をデフォルトにする
 		if (period == null || period.isBlank() || !"monthly".equals(period)) {
 			period = "daily";
+		}
+
+		// targetMonth が yyyy-MM 形式でなければ全期間（null）扱い
+		if (!isValidMonth(targetMonth)) {
+			targetMonth = null;
 		}
 
 		// 選択カテゴリ名を解決（該当が無ければ全カテゴリ扱いに戻す）
@@ -797,20 +804,26 @@ public class AuthController {
 			}
 		}
 
-		long itemCount = countItems(categoryId);
-		long dealCount = countDeals(categoryId);
+		// 選択月名（全期間なら「全期間」、指定時は「yyyy年MM月」）
+		String selectedMonthName = (targetMonth == null)
+				? "全期間"
+				: targetMonth.substring(0, 4) + "年" + targetMonth.substring(5, 7) + "月";
+		String chartTitle = "利用状況の推移（" + selectedMonthName + "）";
+
+		long itemCount = countItems(categoryId, targetMonth);
+		long dealCount = countDeals(categoryId, targetMonth);
 		double dealRate = calculateRate(dealCount, itemCount);
 
 		// 折れ線グラフ用の時系列データを組み立てる
 		// 出品数・成約数は items.created_at 基準、メッセージ数は messages.created_at 基準。
 		// 軸が異なるためラベルを統合して 0 埋めで揃える（TreeMap でラベル昇順）。
 		Map<String, long[]> series = new TreeMap<>(); // [0]=出品数 [1]=成約数 [2]=メッセージ数
-		for (Map<String, Object> row : itemTimeSeries(period, categoryId)) {
+		for (Map<String, Object> row : itemTimeSeries(period, categoryId, targetMonth)) {
 			long[] v = series.computeIfAbsent(String.valueOf(row.get("label")), k -> new long[3]);
 			v[0] = toLong(row.get("listingCount"));
 			v[1] = toLong(row.get("dealCount"));
 		}
-		for (Map<String, Object> row : messageTimeSeries(period, categoryId)) {
+		for (Map<String, Object> row : messageTimeSeries(period, categoryId, targetMonth)) {
 			long[] v = series.computeIfAbsent(String.valueOf(row.get("label")), k -> new long[3]);
 			v[2] = toLong(row.get("messageCount"));
 		}
@@ -834,19 +847,25 @@ public class AuthController {
 		model.addAttribute("selectedCategoryId", categoryId);
 		model.addAttribute("selectedCategoryName", selectedCategoryName);
 
-		// 全体指標（カテゴリ選択で変化しない）
+		// 対象月選択フォーム用
+		model.addAttribute("monthOptions", monthOptions());
+		model.addAttribute("targetMonth", targetMonth);
+		model.addAttribute("selectedMonthName", selectedMonthName);
+
+		// 全体指標（カテゴリ・対象月で変化しない）
 		model.addAttribute("userCount", countTable("users"));
 		model.addAttribute("reportCount", countTable("reports"));
 
-		// 選択カテゴリ指標（カテゴリ選択で変化する）
+		// 選択カテゴリ・対象月で変化する指標
 		model.addAttribute("itemCount", itemCount);
 		model.addAttribute("dealCount", dealCount);
 		model.addAttribute("dealRate", dealRate);
-		model.addAttribute("applicationCount", countByCategory("applications", categoryId));
-		model.addAttribute("transactionCount", countByCategory("transactions", categoryId));
-		model.addAttribute("messageCount", countByCategory("messages", categoryId));
+		model.addAttribute("applicationCount", countByCategory("applications", categoryId, targetMonth));
+		model.addAttribute("transactionCount", countByCategory("transactions", categoryId, targetMonth));
+		model.addAttribute("messageCount", countByCategory("messages", categoryId, targetMonth));
 
 		// 折れ線グラフ用データ
+		model.addAttribute("chartTitle", chartTitle);
 		model.addAttribute("chartLabelList", chartLabelList);
 		model.addAttribute("chartListingCountList", chartListingCountList);
 		model.addAttribute("chartDealCountList", chartDealCountList);
@@ -855,9 +874,9 @@ public class AuthController {
 	}
 
 
-	// 折れ線グラフ用：出品数・成約数の時系列（items.created_at 基準、categoryId で絞り込み可）
+	// 折れ線グラフ用：出品数・成約数の時系列（items.created_at 基準、categoryId・targetMonth で絞り込み可）
 	// 成約数は transactions.status = 1 を items.created_at 基準で集計する。
-	private List<Map<String, Object>> itemTimeSeries(String period, Integer categoryId) {
+	private List<Map<String, Object>> itemTimeSeries(String period, Integer categoryId, String targetMonth) {
 		String labelExpr = "monthly".equals(period)
 				? "TO_CHAR(DATE_TRUNC('month', i.created_at), 'YYYY-MM')"
 				: "TO_CHAR(CAST(i.created_at AS DATE), 'YYYY-MM-DD')";
@@ -872,14 +891,15 @@ public class AuthController {
 				+ "FROM items i "
 				+ "LEFT JOIN transactions t ON t.item_id = i.item_id AND t.status = 1 "
 				+ "WHERE (:categoryId IS NULL OR i.category_id = :categoryId) "
+				+ "  AND (:targetMonth IS NULL OR TO_CHAR(i.created_at, 'YYYY-MM') = :targetMonth) "
 				+ "GROUP BY " + groupExpr + " "
 				+ "ORDER BY " + groupExpr + " ASC",
-				categoryParam(categoryId));
+				statsParam(categoryId, targetMonth));
 	}
 
-	// 折れ線グラフ用：メッセージ数の時系列（messages.created_at 基準、categoryId で絞り込み可）
+	// 折れ線グラフ用：メッセージ数の時系列（messages.created_at 基準、categoryId・targetMonth で絞り込み可）
 	// categoryId 指定時は messages.item_id → items.category_id で絞り込む（item_id=NULL は除外）。
-	private List<Map<String, Object>> messageTimeSeries(String period, Integer categoryId) {
+	private List<Map<String, Object>> messageTimeSeries(String period, Integer categoryId, String targetMonth) {
 		String labelExpr = "monthly".equals(period)
 				? "TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM')"
 				: "TO_CHAR(CAST(m.created_at AS DATE), 'YYYY-MM-DD')";
@@ -893,9 +913,10 @@ public class AuthController {
 				+ "FROM messages m "
 				+ "WHERE (:categoryId IS NULL OR EXISTS ("
 				+ "  SELECT 1 FROM items i WHERE i.item_id = m.item_id AND i.category_id = :categoryId)) "
+				+ "  AND (:targetMonth IS NULL OR TO_CHAR(m.created_at, 'YYYY-MM') = :targetMonth) "
 				+ "GROUP BY " + groupExpr + " "
 				+ "ORDER BY " + groupExpr + " ASC",
-				categoryParam(categoryId));
+				statsParam(categoryId, targetMonth));
 	}
 
 	// カテゴリ選択フォーム用の一覧
@@ -905,6 +926,28 @@ public class AuthController {
 				FROM categories
 				ORDER BY category_id ASC
 				""", new MapSqlParameterSource());
+	}
+
+	// 対象月選択フォーム用の一覧（items と messages の年月を結合して降順）
+	private List<Map<String, Object>> monthOptions() {
+		return jdbcTemplate.queryForList("""
+				SELECT DISTINCT month_value AS "value", month_label AS "label"
+				FROM (
+					SELECT TO_CHAR(created_at, 'YYYY-MM')   AS month_value,
+					       TO_CHAR(created_at, 'YYYY年MM月') AS month_label
+					FROM items
+					UNION
+					SELECT TO_CHAR(created_at, 'YYYY-MM')   AS month_value,
+					       TO_CHAR(created_at, 'YYYY年MM月') AS month_label
+					FROM messages
+				) m
+				ORDER BY month_value DESC
+				""", new MapSqlParameterSource());
+	}
+
+	// targetMonth が yyyy-MM 形式かどうか
+	private boolean isValidMonth(String targetMonth) {
+		return targetMonth != null && targetMonth.matches("\\d{4}-\\d{2}");
 	}
 
 	private void setSearchKeyModel(
@@ -1291,47 +1334,61 @@ public class AuthController {
 				""", new MapSqlParameterSource("status", status), Long.class);
 	}
 
-	// 総出品数（categoryId が null なら全カテゴリ）
-	private long countItems(Integer categoryId) {
-		Long count = jdbcTemplate.queryForObject("""
-				SELECT COUNT(*)
-				FROM items
-				WHERE (:categoryId IS NULL OR category_id = :categoryId)
-				""", categoryParam(categoryId), Long.class);
-		return count == null ? 0L : count;
-	}
-
-	// 成約数: transactions.status = 1 の件数（categoryId が null なら全カテゴリ）
-	private long countDeals(Integer categoryId) {
-		Long count = jdbcTemplate.queryForObject("""
-				SELECT COUNT(DISTINCT t.transaction_id)
-				FROM transactions t
-				JOIN items i
-					ON i.item_id = t.item_id
-				WHERE t.status = 1
-					AND (:categoryId IS NULL OR i.category_id = :categoryId)
-				""", categoryParam(categoryId), Long.class);
-		return count == null ? 0L : count;
-	}
-
-	// item_id を持つテーブルを items.category_id で絞り込んで件数を数える。
-	// categoryId が null なら全件（item_id が NULL の行も含む）。
-	// categoryId 指定時は、その物品が指定カテゴリに属する行だけを数える
-	// （messages の item_id = NULL は対象外になる）。
-	// table は呼び出し側が固定文字列で渡す（外部入力は使わない）。
-	private long countByCategory(String table, Integer categoryId) {
+	// 総出品数（categoryId が null なら全カテゴリ、targetMonth が null なら全期間）
+	private long countItems(Integer categoryId, String targetMonth) {
 		Long count = jdbcTemplate.queryForObject(
-				"SELECT COUNT(*) FROM " + table + " x "
-				+ "WHERE (:categoryId IS NULL OR EXISTS ("
-				+ "  SELECT 1 FROM items i "
-				+ "  WHERE i.item_id = x.item_id AND i.category_id = :categoryId))",
-				categoryParam(categoryId), Long.class);
+				"SELECT COUNT(*) FROM items "
+				+ "WHERE (:categoryId IS NULL OR category_id = :categoryId) "
+				+ "  AND (:targetMonth IS NULL OR TO_CHAR(created_at, 'YYYY-MM') = :targetMonth)",
+				statsParam(categoryId, targetMonth), Long.class);
+		return count == null ? 0L : count;
+	}
+
+	// 成約数: transactions.status = 1 の件数。月絞り込みは items.created_at 基準。
+	private long countDeals(Integer categoryId, String targetMonth) {
+		Long count = jdbcTemplate.queryForObject(
+				"SELECT COUNT(DISTINCT t.transaction_id) "
+				+ "FROM transactions t "
+				+ "JOIN items i ON i.item_id = t.item_id "
+				+ "WHERE t.status = 1 "
+				+ "  AND (:categoryId IS NULL OR i.category_id = :categoryId) "
+				+ "  AND (:targetMonth IS NULL OR TO_CHAR(i.created_at, 'YYYY-MM') = :targetMonth)",
+				statsParam(categoryId, targetMonth), Long.class);
+		return count == null ? 0L : count;
+	}
+
+	// item_id を持つテーブルをカテゴリ・対象月で絞り込んで件数を数える。
+	// applications / transactions : カテゴリ・月とも items.created_at 基準で絞り込む。
+	// messages                    : カテゴリは item 経由、月は messages.created_at 基準で絞り込む
+	//                               （categoryId 指定時は item_id = NULL のメッセージは対象外）。
+	// table は呼び出し側が固定文字列で渡す（外部入力は使わない）。
+	private long countByCategory(String table, Integer categoryId, String targetMonth) {
+		String sql;
+		if ("messages".equals(table)) {
+			sql = "SELECT COUNT(*) FROM messages x "
+					+ "WHERE (:categoryId IS NULL OR EXISTS ("
+					+ "  SELECT 1 FROM items i WHERE i.item_id = x.item_id AND i.category_id = :categoryId)) "
+					+ "  AND (:targetMonth IS NULL OR TO_CHAR(x.created_at, 'YYYY-MM') = :targetMonth)";
+		} else {
+			sql = "SELECT COUNT(*) FROM " + table + " x "
+					+ "JOIN items i ON i.item_id = x.item_id "
+					+ "WHERE (:categoryId IS NULL OR i.category_id = :categoryId) "
+					+ "  AND (:targetMonth IS NULL OR TO_CHAR(i.created_at, 'YYYY-MM') = :targetMonth)";
+		}
+		Long count = jdbcTemplate.queryForObject(sql, statsParam(categoryId, targetMonth), Long.class);
 		return count == null ? 0L : count;
 	}
 
 	// categoryId を NULL 許容の INTEGER パラメータとして渡す
 	private MapSqlParameterSource categoryParam(Integer categoryId) {
 		return new MapSqlParameterSource().addValue("categoryId", categoryId, Types.INTEGER);
+	}
+
+	// 統計用パラメータ（categoryId: INTEGER, targetMonth: VARCHAR、いずれも NULL 許容）
+	private MapSqlParameterSource statsParam(Integer categoryId, String targetMonth) {
+		return new MapSqlParameterSource()
+				.addValue("categoryId", categoryId, Types.INTEGER)
+				.addValue("targetMonth", targetMonth, Types.VARCHAR);
 	}
 
 	// 集計結果(Map)の数値を安全に変換するユーティリティ

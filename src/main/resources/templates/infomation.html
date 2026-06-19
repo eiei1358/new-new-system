@@ -59,6 +59,17 @@
                     </option>
                 </select>
             </div>
+            <div class="filter-item">
+                <label for="targetMonth">対象月</label>
+                <select id="targetMonth" name="targetMonth">
+                    <option value="" th:selected="${targetMonth == null}">全期間</option>
+                    <option th:each="month : ${monthOptions}"
+                            th:value="${month.value}"
+                            th:text="${month.label}"
+                            th:selected="${targetMonth != null and targetMonth == month.value}">
+                    </option>
+                </select>
+            </div>
             <button type="submit">表示</button>
         </form>
 
@@ -81,6 +92,8 @@
             <span th:text="${period == 'monthly' ? '月別' : '日別'}">日別</span>
             /
             <span th:text="${selectedCategoryName}">全カテゴリ</span>
+            /
+            <span th:text="${selectedMonthName}">全期間</span>
         </p>
 
         <!-- 選択カテゴリの主要指標（カテゴリ選択で変化する） -->
@@ -131,6 +144,7 @@
 <!-- ThymeleafからJavaScriptへ値を渡し、Chart.jsで折れ線グラフを描画する -->
 <script th:inline="javascript">
     /*<![CDATA[*/
+    const chartTitle           = /*[[${chartTitle}]]*/ '利用状況の推移';
     const chartLabelList        = /*[[${chartLabelList}]]*/ [];
     const chartListingCountList = /*[[${chartListingCountList}]]*/ [];
     const chartDealCountList    = /*[[${chartDealCountList}]]*/ [];
@@ -182,7 +196,7 @@
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    title: { display: true, text: '出品数・成約数・メッセージ数の推移' },
+                    title: { display: true, text: chartTitle },
                     legend: { display: true, position: 'top' }
                 },
                 scales: {
