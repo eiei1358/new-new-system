@@ -141,8 +141,6 @@
                     <th>出品数</th>
                     <th>成約数</th>
                     <th>成約率</th>
-                    <th class="bar-col">出品数グラフ</th>
-                    <th class="bar-col">成約数グラフ</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -151,18 +149,6 @@
                     <td th:text="${row.listingCount}">0</td>
                     <td th:text="${row.dealCount}">0</td>
                     <td><span class="rate-badge" th:text="${row.rate} + '%'">0.0%</span></td>
-                    <td class="bar-cell">
-                        <div class="bar-wrap">
-                            <div class="bar-fill listing"
-                                 th:style="'width:' + ${row.listingCount * 100.0 / maxListingCount} + '%'"></div>
-                        </div>
-                    </td>
-                    <td class="bar-cell">
-                        <div class="bar-wrap">
-                            <div class="bar-fill deal"
-                                 th:style="'width:' + ${row.dealCount * 100.0 / maxDealCount} + '%'"></div>
-                        </div>
-                    </td>
                 </tr>
                 </tbody>
             </table>
@@ -184,8 +170,6 @@
                     <th>出品数</th>
                     <th>成約数</th>
                     <th>成約率</th>
-                    <th class="bar-col">出品数グラフ</th>
-                    <th class="bar-col">成約数グラフ</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -194,18 +178,6 @@
                     <td th:text="${row.listingCount}">0</td>
                     <td th:text="${row.dealCount}">0</td>
                     <td><span class="rate-badge" th:text="${row.rate} + '%'">0.0%</span></td>
-                    <td class="bar-cell">
-                        <div class="bar-wrap">
-                            <div class="bar-fill listing"
-                                 th:style="'width:' + ${row.listingCount * 100.0 / maxListingCount} + '%'"></div>
-                        </div>
-                    </td>
-                    <td class="bar-cell">
-                        <div class="bar-wrap">
-                            <div class="bar-fill deal"
-                                 th:style="'width:' + ${row.dealCount * 100.0 / maxDealCount} + '%'"></div>
-                        </div>
-                    </td>
                 </tr>
                 </tbody>
             </table>

@@ -840,9 +840,9 @@ public class AuthController {
 		model.addAttribute("itemCount", itemCount);
 		model.addAttribute("dealCount", dealCount);
 		model.addAttribute("dealRate", dealRate);
-		model.addAttribute("applicationCount", countTable("applications"));
-		model.addAttribute("transactionCount", countTable("transactions"));
-		model.addAttribute("messageCount", countTable("messages"));
+		model.addAttribute("applicationCount", countByCategory("applications", categoryId));
+		model.addAttribute("transactionCount", countByCategory("transactions", categoryId));
+		model.addAttribute("messageCount", countByCategory("messages", categoryId));
 		model.addAttribute("reportCount", countTable("reports"));
 
 		// 既存互換の集計値（テンプレートで使わなくても害はない）
@@ -1351,6 +1351,21 @@ public class AuthController {
 				WHERE t.status = 1
 					AND (:categoryId IS NULL OR i.category_id = :categoryId)
 				""", categoryParam(categoryId), Long.class);
+		return count == null ? 0L : count;
+	}
+
+	// item_id を持つテーブルを items.category_id で絞り込んで件数を数える。
+	// categoryId が null なら全件（item_id が NULL の行も含む）。
+	// categoryId 指定時は、その物品が指定カテゴリに属する行だけを数える
+	// （messages の item_id = NULL は対象外になる）。
+	// table は呼び出し側が固定文字列で渡す（外部入力は使わない）。
+	private long countByCategory(String table, Integer categoryId) {
+		Long count = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM " + table + " x "
+				+ "WHERE (:categoryId IS NULL OR EXISTS ("
+				+ "  SELECT 1 FROM items i "
+				+ "  WHERE i.item_id = x.item_id AND i.category_id = :categoryId))",
+				categoryParam(categoryId), Long.class);
 		return count == null ? 0L : count;
 	}
 
