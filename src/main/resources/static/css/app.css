@@ -369,6 +369,41 @@ img {
   margin: 0;
 }
 
+/* グラフ種類（棒/折れ線）のラジオ */
+.period-form .graph-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.period-form .graph-type label {
+  font-weight: 400;
+}
+
+.period-form .graph-type input {
+  width: auto;
+  margin: 0 4px 0 0;
+}
+
+/* 現在の選択条件ラベル */
+.condition-label {
+  margin: 12px 0;
+  font-weight: 600;
+}
+
+/* Chart.js 描画領域 */
+.chart-box {
+  position: relative;
+  width: 100%;
+  min-height: 360px;
+  height: 360px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
 /* セクション（section 共通の枠の上に余白を追加） */
 .stats-section {
   padding: 16px;

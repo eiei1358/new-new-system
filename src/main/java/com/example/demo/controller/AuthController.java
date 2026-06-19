@@ -1,6 +1,8 @@
 package com.example.demo.controller;
 
+import java.sql.Types;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -764,9 +766,14 @@ public class AuthController {
 	}
 
 	// 統計情報（正式URL: /admin/statistics、/auth/stats は互換用に残す）
+	// period   : daily / monthly（時系列の集計単位）
+	// categoryId : 絞り込むカテゴリ。null・空なら全カテゴリ
+	// graphType  : bar / line（Chart.js のグラフ種類）
 	@GetMapping({ "/admin/statistics", "/auth/stats" })
 	public String stats(
 			@RequestParam(required = false, defaultValue = "daily") String period,
+			@RequestParam(required = false) Integer categoryId,
+			@RequestParam(required = false, defaultValue = "bar") String graphType,
 			HttpSession session,
 			Model model) {
 		if (!isAdmin(session)) {
@@ -778,18 +785,54 @@ public class AuthController {
 			period = "daily";
 		}
 
-		long itemCount = countTable("items");
-		long dealCount = countDeals();
+		// graphType が想定外の場合は棒グラフをデフォルトにする
+		if (!"line".equals(graphType) && !"bar".equals(graphType)) {
+			graphType = "bar";
+		}
+
+		// 選択カテゴリ名を解決（該当が無ければ全カテゴリ扱いに戻す）
+		String selectedCategoryName = "全カテゴリ";
+		if (categoryId != null) {
+			List<Map<String, Object>> names = jdbcTemplate.queryForList(
+					"SELECT name AS \"name\" FROM categories WHERE category_id = :categoryId",
+					categoryParam(categoryId));
+			if (names.isEmpty()) {
+				categoryId = null;
+			} else {
+				selectedCategoryName = String.valueOf(names.get(0).get("name"));
+			}
+		}
+
+		long itemCount = countItems(categoryId);
+		long dealCount = countDeals(categoryId);
 		double dealRate = calculateRate(dealCount, itemCount);
 
-		List<Map<String, Object>> categoryStats = categoryStats();
-		List<Map<String, Object>> timeStats = timeStats(period);
+		List<Map<String, Object>> categoryStats = categoryStats(categoryId);
+		List<Map<String, Object>> timeStats = timeStats(period, categoryId);
 
 		long maxListingCount = maxValue(categoryStats, timeStats, "listingCount");
 		long maxDealCount = maxValue(categoryStats, timeStats, "dealCount");
 
+		// Chart.js 用のリスト（時系列データから組み立てる）
+		List<String> chartLabelList = new ArrayList<>();
+		List<Long> chartListingCountList = new ArrayList<>();
+		List<Long> chartDealCountList = new ArrayList<>();
+		List<Double> chartRateList = new ArrayList<>();
+		for (Map<String, Object> row : timeStats) {
+			chartLabelList.add(String.valueOf(row.get("label")));
+			chartListingCountList.add(toLong(row.get("listingCount")));
+			chartDealCountList.add(toLong(row.get("dealCount")));
+			chartRateList.add(toDouble(row.get("rate")));
+		}
+
 		model.addAttribute("loginUser", getLoginUser(session));
 		model.addAttribute("period", period);
+		model.addAttribute("graphType", graphType);
+
+		// カテゴリ選択フォーム用
+		model.addAttribute("categories", categoryOptions());
+		model.addAttribute("selectedCategoryId", categoryId);
+		model.addAttribute("selectedCategoryName", selectedCategoryName);
 
 		// サマリーカード
 		model.addAttribute("userCount", countTable("users"));
@@ -811,6 +854,12 @@ public class AuthController {
 		model.addAttribute("categoryStats", categoryStats);
 		model.addAttribute("timeStats", timeStats);
 
+		// Chart.js 用データ
+		model.addAttribute("chartLabelList", chartLabelList);
+		model.addAttribute("chartListingCountList", chartListingCountList);
+		model.addAttribute("chartDealCountList", chartDealCountList);
+		model.addAttribute("chartRateList", chartRateList);
+
 		// グラフ用の最大値（0除算・空データ対策で最低1を渡す）
 		model.addAttribute("maxListingCount", maxListingCount == 0 ? 1 : maxListingCount);
 		model.addAttribute("maxDealCount", maxDealCount == 0 ? 1 : maxDealCount);
@@ -818,8 +867,8 @@ public class AuthController {
 	}
 
 
-	// カテゴリ別統計（成約数は transactions.status = 1 で集計）
-	private List<Map<String, Object>> categoryStats() {
+	// カテゴリ別統計（成約数は transactions.status = 1 で集計、categoryId で絞り込み可）
+	private List<Map<String, Object>> categoryStats(Integer categoryId) {
 		return jdbcTemplate.queryForList("""
 				SELECT
 					c.name AS "categoryName",
@@ -837,14 +886,15 @@ public class AuthController {
 				LEFT JOIN transactions t
 					ON t.item_id = i.item_id
 					AND t.status = 1
+				WHERE (:categoryId IS NULL OR c.category_id = :categoryId)
 				GROUP BY c.category_id, c.name
 				ORDER BY c.category_id ASC
-				""", new MapSqlParameterSource());
+				""", categoryParam(categoryId));
 	}
 
-	// 時系列統計（period = monthly なら月別、それ以外は日別）
+	// 時系列統計（period = monthly なら月別、それ以外は日別、categoryId で絞り込み可）
 	// 出品数と同じ期間軸で比較するため、成約数も items.created_at 基準で集計する
-	private List<Map<String, Object>> timeStats(String period) {
+	private List<Map<String, Object>> timeStats(String period, Integer categoryId) {
 		if ("monthly".equals(period)) {
 			return jdbcTemplate.queryForList("""
 					SELECT
@@ -861,9 +911,10 @@ public class AuthController {
 					LEFT JOIN transactions t
 						ON t.item_id = i.item_id
 						AND t.status = 1
+					WHERE (:categoryId IS NULL OR i.category_id = :categoryId)
 					GROUP BY DATE_TRUNC('month', i.created_at)
 					ORDER BY DATE_TRUNC('month', i.created_at) ASC
-					""", new MapSqlParameterSource());
+					""", categoryParam(categoryId));
 		}
 
 		return jdbcTemplate.queryForList("""
@@ -881,8 +932,18 @@ public class AuthController {
 				LEFT JOIN transactions t
 					ON t.item_id = i.item_id
 					AND t.status = 1
+				WHERE (:categoryId IS NULL OR i.category_id = :categoryId)
 				GROUP BY CAST(i.created_at AS DATE)
 				ORDER BY CAST(i.created_at AS DATE) ASC
+				""", categoryParam(categoryId));
+	}
+
+	// カテゴリ選択フォーム用の一覧
+	private List<Map<String, Object>> categoryOptions() {
+		return jdbcTemplate.queryForList("""
+				SELECT category_id AS "categoryId", name AS "name"
+				FROM categories
+				ORDER BY category_id ASC
 				""", new MapSqlParameterSource());
 	}
 
@@ -1270,14 +1331,41 @@ public class AuthController {
 				""", new MapSqlParameterSource("status", status), Long.class);
 	}
 
-	// 成約数: transactions.status = 1 の件数
-	private long countDeals() {
+	// 総出品数（categoryId が null なら全カテゴリ）
+	private long countItems(Integer categoryId) {
 		Long count = jdbcTemplate.queryForObject("""
 				SELECT COUNT(*)
-				FROM transactions
-				WHERE status = 1
-				""", new MapSqlParameterSource(), Long.class);
+				FROM items
+				WHERE (:categoryId IS NULL OR category_id = :categoryId)
+				""", categoryParam(categoryId), Long.class);
 		return count == null ? 0L : count;
+	}
+
+	// 成約数: transactions.status = 1 の件数（categoryId が null なら全カテゴリ）
+	private long countDeals(Integer categoryId) {
+		Long count = jdbcTemplate.queryForObject("""
+				SELECT COUNT(DISTINCT t.transaction_id)
+				FROM transactions t
+				JOIN items i
+					ON i.item_id = t.item_id
+				WHERE t.status = 1
+					AND (:categoryId IS NULL OR i.category_id = :categoryId)
+				""", categoryParam(categoryId), Long.class);
+		return count == null ? 0L : count;
+	}
+
+	// categoryId を NULL 許容の INTEGER パラメータとして渡す
+	private MapSqlParameterSource categoryParam(Integer categoryId) {
+		return new MapSqlParameterSource().addValue("categoryId", categoryId, Types.INTEGER);
+	}
+
+	// 集計結果(Map)の数値を安全に変換するユーティリティ
+	private long toLong(Object value) {
+		return value instanceof Number number ? number.longValue() : 0L;
+	}
+
+	private double toDouble(Object value) {
+		return value instanceof Number number ? number.doubleValue() : 0.0;
 	}
 
 	// 譲渡完了数: completed_at IS NOT NULL の件数（参考値）

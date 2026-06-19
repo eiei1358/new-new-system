@@ -6,6 +6,9 @@
 <title>統計情報</title>
     <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
     <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+    <!-- Chart.js（CDN）。読み込めない環境でもテーブルは表示される -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 </head>
 <body>
 
@@ -36,15 +39,43 @@
     <main class="admin-main">
         <h1>統計情報</h1>
 
-        <!-- 日別/月別 切り替えフォーム -->
+        <!-- 期間区分・カテゴリ・グラフ種類の選択フォーム -->
         <form class="period-form" method="get" th:action="@{/admin/statistics}">
             <label for="period">期間区分</label>
-            <select id="period" name="period" onchange="this.form.submit()">
+            <select id="period" name="period">
                 <option value="daily"   th:selected="${period == 'daily'}">日別</option>
                 <option value="monthly" th:selected="${period == 'monthly'}">月別</option>
             </select>
+
+            <label for="categoryId">カテゴリ</label>
+            <select id="categoryId" name="categoryId">
+                <option value="" th:selected="${selectedCategoryId == null}">全カテゴリ</option>
+                <option th:each="category : ${categories}"
+                        th:value="${category.categoryId}"
+                        th:text="${category.name}"
+                        th:selected="${selectedCategoryId != null and selectedCategoryId == category.categoryId}">
+                </option>
+            </select>
+
+            <span class="graph-type">
+                <label>
+                    <input type="radio" name="graphType" value="bar" th:checked="${graphType == 'bar'}"> 棒グラフ
+                </label>
+                <label>
+                    <input type="radio" name="graphType" value="line" th:checked="${graphType == 'line'}"> 折れ線グラフ
+                </label>
+            </span>
+
             <button type="submit">表示</button>
         </form>
+
+        <!-- 現在の選択条件 -->
+        <p class="condition-label">
+            表示条件：
+            <span th:text="${period == 'monthly' ? '月別' : '日別'}">日別</span>
+            /
+            <span th:text="${selectedCategoryName}">全カテゴリ</span>
+        </p>
 
         <!-- サマリーカード -->
         <section class="stats-section">
@@ -82,6 +113,18 @@
                     <div class="stat-value" th:text="${reportCount}">0</div>
                     <div class="stat-label">通報数</div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Chart.js グラフ表示 -->
+        <section class="stats-section">
+            <h2>
+                グラフ表示
+                <span th:text="${period == 'monthly' ? '（月別）' : '（日別）'}">（日別）</span>
+            </h2>
+            <p th:if="${#lists.isEmpty(chartLabelList)}" class="no-data">データがありません。</p>
+            <div class="chart-box" th:unless="${#lists.isEmpty(chartLabelList)}">
+                <canvas id="statisticsChart"></canvas>
             </div>
         </section>
 
@@ -171,6 +214,60 @@
     </main>
 
 </div>
+
+<!-- ThymeleafからJavaScriptへ値を渡し、Chart.jsで描画する -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const graphType            = /*[[${graphType}]]*/ 'bar';
+    const chartLabelList       = /*[[${chartLabelList}]]*/ [];
+    const chartListingCountList= /*[[${chartListingCountList}]]*/ [];
+    const chartDealCountList   = /*[[${chartDealCountList}]]*/ [];
+    const chartRateList        = /*[[${chartRateList}]]*/ [];
+
+    // Chart.js が読み込めていて canvas が存在し、データがある場合のみ描画
+    if (typeof Chart !== 'undefined'
+            && document.getElementById('statisticsChart')
+            && chartLabelList.length > 0) {
+
+        const ctx = document.getElementById('statisticsChart');
+
+        new Chart(ctx, {
+            type: graphType,
+            data: {
+                labels: chartLabelList,
+                datasets: [
+                    {
+                        label: '出品数',
+                        data: chartListingCountList,
+                        backgroundColor: 'rgba(47, 125, 79, 0.6)',
+                        borderColor: 'rgba(47, 125, 79, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: '成約数',
+                        data: chartDealCountList,
+                        backgroundColor: 'rgba(217, 138, 31, 0.6)',
+                        borderColor: 'rgba(217, 138, 31, 1)',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    datalabels: { display: false },
+                    title: { display: true, text: '出品数・成約数の推移' },
+                    legend: { display: true }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } }
+                }
+            }
+        });
+    }
+    /*]]>*/
+</script>
 
 </body>
 </html>
