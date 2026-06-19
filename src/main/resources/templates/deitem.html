@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>物品削除</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    フリマ社内システム　管理者コンソール
+    <a th:href="@{/logout}">ログアウト</a>
+</header>
+
+<nav>
+    <h2>管理メニュー</h2>
+    <ul>
+        <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+        <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+        <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+        <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+        <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+        <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+        <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+        <li><a th:href="@{/auth/reports}">通報確認</a></li>
+        <li><a th:href="@{/auth/stats}">統計情報閲覧</a></li>
+    </ul>
+</nav>
+
+<main>
+    <h1>物品削除</h1>
+
+    <p th:if="${message}" th:text="${message}"></p>
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <p th:if="${items == null or #lists.isEmpty(items)}">物品は登録されていません。</p>
+
+    <table border="1" th:if="${items != null and !#lists.isEmpty(items)}">
+        <tr>
+            <th>ID</th>
+            <th>物品名</th>
+            <th>出品者</th>
+            <th>カテゴリ</th>
+            <th>価格</th>
+            <th>種別</th>
+            <th>状態</th>
+            <th>作成日時</th>
+            <th>操作</th>
+        </tr>
+        <tr th:each="item : ${items}">
+            <td th:text="${item['itemId']}">1</td>
+            <td th:text="${item['name']}">物品名</td>
+            <td th:text="${item['sellerName']}">出品者</td>
+            <td th:text="${item['categoryName']}">カテゴリ</td>
+            <td th:text="${item['price'] != null ? item['price'] + '円' : '-'}">0円</td>
+            <td th:text="${item['typeName']}">有償</td>
+            <td th:text="${item['statusName']}">出品中</td>
+            <td th:text="${item['createdAt']}">日時</td>
+            <td>
+                <a th:href="@{/detail/{id}(id=${item['itemId']})}">詳細</a>
+                <form th:action="@{/auth/items/delete/{id}(id=${item['itemId']})}" method="post">
+                    <button type="submit" onclick="return confirm('この物品を削除しますか？関連する画像・応募・取引・メッセージも削除されます。');">削除</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>メッセージ詳細</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    <h1><a th:href="@{/item-101}">フリマ</a></h1>
+    <div>
+        <span th:text="${loginUser.name + 'さん'}">ユーザーさん</span>
+        <a th:href="@{/logout}">ログアウト</a>
+    </div>
+</header>
+
+<nav>
+    <a th:href="@{/item-101}">ホーム</a>
+    <a th:href="@{/search}">検索</a>
+    <a th:href="@{/item/post}">出品</a>
+    <a th:href="@{/messages}">メッセージ一覧</a>
+    <a th:href="@{/mypage}">マイページ</a>
+</nav>
+
+<main>
+    <p><a th:href="@{/messages}">メッセージ一覧へ戻る</a></p>
+
+    <h2 th:text="${item['name'] + ' のチャット'}">商品のチャット</h2>
+    <p>
+        相手：<span th:text="${otherUser['name']} + 'さん'">相手</span>
+    </p>
+    <p>
+        状態：<span th:text="${item['statusName']}">出品中</span>
+        ／ 種別：<span th:text="${item['typeName']}">有償</span>
+    </p>
+
+    <p th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <section>
+        <h3>メッセージ</h3>
+
+        <p th:if="${messageDetails == null or #lists.isEmpty(messageDetails)}">
+            まだメッセージはありません。
+        </p>
+
+        <div th:if="${messageDetails != null and !#lists.isEmpty(messageDetails)}">
+            <article th:each="message : ${messageDetails}">
+                <p>
+                    <strong th:text="${message['senderName'] + 'さん'}">送信者</strong>
+                    <span th:text="${message['createdAt']}">日時</span>
+                </p>
+                <p th:text="${message['content']}">本文</p>
+                <button type="button"
+                        th:onclick="'document.getElementById(\'messageReportModal' + ${message['messageId']} + '\').style.display=\'block\''">
+                    このメッセージを通報
+                </button>
+                <div th:id="'messageReportModal' + ${message['messageId']}" class="report-modal" style="display:none;">
+                    <h4>メッセージの通報</h4>
+                    <form th:action="@{/messages/{id}/report(id=${message['messageId']})}" method="post">
+                        <textarea name="reason" rows="4" cols="50" required placeholder="通報理由を入力してください"></textarea>
+                        <br>
+                        <button type="submit">通報する</button>
+                        <button type="button"
+                                th:onclick="'document.getElementById(\'messageReportModal' + ${message['messageId']} + '\').style.display=\'none\''">
+                            キャンセル
+                        </button>
+                    </form>
+                </div>
+                <hr>
+            </article>
+        </div>
+    </section>
+
+    <section>
+        <h3>返信</h3>
+        <form th:action="@{/messages/{itemId}/{otherUserId}/send(itemId=${itemId}, otherUserId=${otherUserId})}" method="post">
+            <textarea name="content" rows="5" cols="60" required></textarea>
+            <br>
+            <button type="submit">送信</button>
+        </form>
+    </section>
+</main>
+
+</body>
+</html>

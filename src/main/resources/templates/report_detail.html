@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>通報詳細</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<header>
+    フリマ社内システム　管理者コンソール
+    <a th:href="@{/logout}">ログアウト</a>
+</header>
+<nav>
+    <h2>管理メニュー</h2>
+    <ul>
+        <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+        <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+        <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+        <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+        <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+        <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+        <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+        <li><a th:href="@{/auth/reports}">通報確認</a></li>
+        <li><a th:href="@{/auth/stats}">統計情報閲覧</a></li>
+    </ul>
+</nav>
+
+<main>
+    <h1>通報詳細</h1>
+
+    <p th:if="${message}" th:text="${message}"></p>
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <p><a th:href="@{/auth/reports}">通報一覧へ戻る</a></p>
+
+    <table border="1">
+        <tr><th>通報ID</th><td th:text="${report['reportId']}">1</td></tr>
+        <tr><th>対象</th><td th:text="${report['targetTypeName']}">物品</td></tr>
+        <tr><th>対象ID</th><td th:text="${report['targetId']}">1</td></tr>
+        <tr><th>通報者</th><td th:text="${report['reporterName']}">通報者</td></tr>
+        <tr><th>理由</th><td th:text="${report['reason']}">理由</td></tr>
+        <tr><th>状態</th><td th:text="${report['statusName']}">未対応</td></tr>
+        <tr><th>通報日時</th><td th:text="${report['createdAt']}">日時</td></tr>
+    </table>
+
+    <h2>対応状況を更新</h2>
+    <form th:action="@{/auth/reports/{id}/status(id=${report['reportId']})}" method="post">
+        <select name="status">
+            <option value="0" th:selected="${report['status'] == 0}">未対応</option>
+            <option value="1" th:selected="${report['status'] == 1}">対応中</option>
+            <option value="2" th:selected="${report['status'] == 2}">対応済み</option>
+        </select>
+        <button type="submit">更新</button>
+    </form>
+
+    <p th:if="${report['targetType'] == 0}">
+        <a th:href="@{/auth/watch/items/{id}(id=${report['targetId']})}">対象物品を確認</a>
+    </p>
+    <p th:if="${report['targetType'] == 1}">
+        <a th:href="@{/auth/watch/messages/{id}(id=${report['targetId']})}">対象メッセージを確認</a>
+    </p>
+</main>
+</body>
+</html>

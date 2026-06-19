@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>出品｜フリマ社内システム</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<header>
+	<h1><a href="/item-101" th:href="@{/item-101}">フリマ社内システム</a></h1>
+	<nav>
+		<a href="/item-101" th:href="@{/item-101}">🏠 ホーム</a>
+		<a href="/search" th:href="@{/search}">🔍 検索</a>
+		<a href="/item/post" th:href="@{/item/post}">➕ 出品</a>
+		<a href="/messages" th:href="@{/messages}">✉️ メッセージ</a>
+		<a href="/mypage" th:href="@{/mypage}">👤 マイページ</a>
+	</nav>
+	<p>
+		<span th:text="${loginUser != null ? loginUser.name : 'ゲスト'}">ユーザー</span>
+		<a href="/logout" th:href="@{/logout}">ログアウト</a>
+	</p>
+</header>
+<hr>
+
+<main>
+	<h2>物品を出品</h2>
+
+	<p th:if="${error}" th:text="${error}">入力エラー</p>
+
+	<form action="/item/confirm"
+		  th:action="@{/item/confirm}"
+		  method="post"
+		  enctype="multipart/form-data"
+		  th:object="${postForm}">
+
+		<section>
+			<h3>基本情報</h3>
+
+			<label for="name">物品名</label>
+			<input id="name" type="text" th:field="*{name}"
+				   placeholder="例：ノートPC" required>
+
+			<label for="description">説明</label>
+			<textarea id="description" th:field="*{description}"
+					  placeholder="商品の説明を入力してください"></textarea>
+		</section>
+
+		<section>
+			<h3>写真アップロード</h3>
+			<input type="file" name="images" accept="image/*" multiple>
+		</section>
+
+		<section>
+			<h3>カテゴリ設定</h3>
+			<select th:field="*{categoryId}" required>
+				<option value="">カテゴリを選択してください</option>
+				<option th:each="category : ${categories}"
+						th:value="${category.categoryId}"
+						th:text="${category.name}">
+					カテゴリ
+				</option>
+			</select>
+		</section>
+
+		<section>
+			<h3>物品状態</h3>
+			<select th:field="*{condition}" required>
+				<option value="">状態を選択してください</option>
+				<option value="0">新品</option>
+				<option value="1">中古</option>
+				<option value="2">傷あり</option>
+			</select>
+		</section>
+
+		<section>
+			<h3>受け取り場所</h3>
+			<select th:field="*{place}" required>
+				<option value="">受け取り場所を選択してください</option>
+				<option value="0">神田</option>
+				<option value="1">横浜</option>
+			</select>
+		</section>
+
+		<section>
+			<h3>価格条件</h3>
+
+			<label>
+				<input type="radio" th:field="*{type}" value="0">
+				無償
+			</label>
+
+			<label>
+				<input type="radio" th:field="*{type}" value="1">
+				有償
+			</label>
+
+			<label>
+				<input type="radio" th:field="*{type}" value="2">
+				オークション方式
+			</label>
+
+			<label for="price">希望金額</label>
+			<input id="price" type="number" min="0" step="1"
+				   th:field="*{price}" placeholder="例：5000">
+		</section>
+
+		<section>
+			<h3>登録期限設定</h3>
+			<label for="deadline">出品終了日</label>
+			<input id="deadline" type="date" th:field="*{deadline}" required>
+		</section>
+
+		<p>
+			<button type="reset">リセット</button>
+			<button type="submit">確認画面へ</button>
+		</p>
+	</form>
+</main>
+</body>
+</html>

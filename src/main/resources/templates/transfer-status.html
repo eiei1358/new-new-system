@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>譲渡状況確認</title>
+<link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+<script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+  <h1><a th:href="@{/item-101}">フリマ</a></h1>
+</header>
+
+<main class="transfer-page">
+  <div class="transfer-card">
+    <h2>譲渡状況確認</h2>
+
+    <p th:if="${error}" class="error" th:text="${error}">エラー</p>
+
+    <div th:if="${transaction != null}">
+      <p class="transfer-id">
+        譲渡ID：<span th:text="${transferCode}">transferCode</span>
+      </p>
+      <p>物品：<span th:text="${transaction['itemName']}">物品名</span></p>
+      <p>出品者：<span th:text="${transaction['sellerName']}">出品者</span></p>
+      <p>譲渡相手：<span th:text="${transaction['buyerName']}">譲渡相手</span></p>
+
+      <div class="transfer-actions">
+        <table>
+          <tr>
+            <th>出品者の確認</th>
+            <td>
+              <span class="done" th:if="${transaction['sellerCompleted'] == 1}">引き渡し確認済み</span>
+              <form th:if="${transaction['sellerCompleted'] != 1}"
+                    th:action="@{/transfer/status/{code}/seller-done(code=${transferCode})}"
+                    method="post">
+                <button type="submit">出品者：引き渡し完了</button>
+              </form>
+            </td>
+          </tr>
+          <tr>
+            <th>譲渡相手の確認</th>
+            <td>
+              <span class="done" th:if="${transaction['buyerCompleted'] == 1}">受け取り確認済み</span>
+              <form th:if="${transaction['buyerCompleted'] != 1}"
+                    th:action="@{/transfer/status/{code}/buyer-done(code=${transferCode})}"
+                    method="post">
+                <button type="submit">譲渡相手：受け取り完了</button>
+              </form>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <p class="complete" th:if="${transaction['status'] == 2}">✅ 譲渡完了です。</p>
+      <p th:if="${transaction['status'] != 2}">譲渡はまだ完了していません。</p>
+
+      <p>
+        <a th:href="@{/detail/{id}(id=${transaction['itemId']})}">物品詳細へ戻る</a>
+      </p>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

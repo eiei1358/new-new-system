@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>カテゴリー追加</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    <h1>カテゴリー追加</h1>
+</header>
+
+<hr>
+
+<form action="/auth/categories/add" method="post">
+
+    <table>
+        <tr>
+            <td>カテゴリー名</td>
+            <td>
+                <input type="text"
+                       name="name"
+                       required
+                       maxlength="50">
+            </td>
+        </tr>
+    </table>
+
+    <br>
+
+    <button type="submit">
+        登録
+    </button>
+
+    <a href="/auth/categories">
+        戻る
+    </a>
+
+</form>
+
+</body>
+</html>

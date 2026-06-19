@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オークション物品詳細</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header class="header">
+  <h1><a th:href="@{/item-101}">フリマ</a></h1>
+
+  <div class="header-right">
+    <a th:href="@{/messages}" class="icon-link">✉</a>
+
+    <div class="user-area">
+      <span th:text="${loginUser.name + 'さん'}">ユーザーさん</span>
+      <a th:href="@{/logout}">ログアウト</a>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <aside class="side-menu">
+    <h2>メニュー</h2>
+    <a th:href="@{/item-101}">ホーム</a>
+    <a th:href="@{/search}">商品一覧</a>
+    <a th:href="@{/item/post}">出品</a>
+    <a th:href="@{/mypage}">マイページ</a>
+    <a th:href="@{/messages}">メッセージ</a>
+  </aside>
+
+  <main class="main-content">
+
+    <p><a th:href="@{/item-101}">商品一覧へ戻る</a></p>
+    <h2>物品詳細（オークション）</h2>
+
+    <p th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <div class="detail-box">
+
+      <div class="detail-image-area">
+        <div th:if="${imageUrls != null && !#lists.isEmpty(imageUrls)}">
+          <img th:each="imageUrl : ${imageUrls}"
+               th:src="${imageUrl}"
+               th:alt="${item['name']}"
+               class="detail-image"
+               width="300">
+        </div>
+        <p th:if="${imageUrls == null || #lists.isEmpty(imageUrls)}">
+          画像は登録されていません。
+        </p>
+      </div>
+
+      <div class="detail-info-area">
+        <h3 th:text="${item['name']}">商品名</h3>
+
+        <p th:text="${#strings.isEmpty(item['description']) ? '説明はありません。' : item['description']}">
+          商品説明
+        </p>
+
+        <table class="detail-table" border="1">
+          <tr>
+            <th>出品者</th>
+            <td th:text="${item['sellerName'] + 'さん'}">出品者</td>
+          </tr>
+          <tr>
+            <th>商品の状態</th>
+            <td th:text="${item['conditionName']}">中古</td>
+          </tr>
+          <tr>
+            <th>カテゴリー</th>
+            <td th:text="${item['categoryName'] != null ? item['categoryName'] : '未分類'}">カテゴリー</td>
+          </tr>
+          <tr>
+            <th>受け取り場所</th>
+            <td th:text="${item['placeName']}">神田</td>
+          </tr>
+          <tr>
+            <th>オークション期限</th>
+            <td th:text="${item['deadline']}">2026-06-30</td>
+          </tr>
+          <tr>
+            <th>現在の価格</th>
+            <td class="current-price">
+              <span th:if="${currentPrice != null}"
+                    th:text="${'￥' + #numbers.formatDecimal(currentPrice, 0, 'COMMA', 0, 'POINT')}">
+                ￥0
+              </span>
+              <span th:if="${currentPrice == null}">未設定</span>
+            </td>
+          </tr>
+          <tr>
+            <th>出品状態</th>
+            <td th:text="${item['statusName']}">出品中</td>
+          </tr>
+        </table>
+
+        <div class="detail-buttons" th:if="${!isSeller and item['status'] != 3}">
+          <button type="button" class="report-button" onclick="document.getElementById('itemReportModal').style.display='block'">
+            物品を通報
+          </button>
+        </div>
+
+        <div id="itemReportModal" class="report-modal" style="display:none;">
+          <h3>物品の通報</h3>
+          <form th:action="@{/items/{id}/report(id=${item['itemId']})}" method="post">
+            <textarea name="reason" rows="5" cols="50" required placeholder="通報理由を入力してください"></textarea>
+            <br>
+            <button type="submit">通報する</button>
+            <button type="button" onclick="document.getElementById('itemReportModal').style.display='none'">キャンセル</button>
+          </form>
+        </div>
+
+        <p th:if="${isSeller}">この商品はあなたが出品した商品です。</p>
+        <p th:if="${expired}">このオークションは終了しています。</p>
+        <p th:if="${item['status'] != 0}">この商品は現在、入札を受け付けていません。</p>
+
+        <section th:if="${transferInfo != null}">
+          <h4>譲渡状況確認</h4>
+          <p>成約後の譲渡ID・QRコードを確認できます。</p>
+          <a th:href="@{/transfer/item/{id}(id=${item['itemId']})}">
+            譲渡QRコードを表示する
+          </a>
+        </section>
+
+        <section class="bid-box"
+                 th:if="${!isSeller && item['status'] == 0 && !expired}">
+          <h4>自身の提示額</h4>
+
+          <form th:action="@{/detail/{id}/bid(id=${item['itemId']})}" method="post">
+            <input type="number"
+                   name="bidPrice"
+                   min="1"
+                   th:min="${currentPrice != null ? currentPrice.intValue() + 1 : 1}"
+                   required>
+            <button type="submit" class="bid-button">入札する</button>
+          </form>
+        </section>
+
+      </div>
+    </div>
+
+    <hr>
+
+    <section class="chat-section">
+      <h3>値下げ依頼・質問チャット</h3>
+      <p th:if="${!isSeller}">
+        <a th:href="@{/messages/item/{id}(id=${item['itemId']})}">出品者へメッセージを送る</a>
+      </p>
+      <p th:if="${isSeller}">
+        <a th:href="@{/messages}">メッセージ一覧から相手を選んで返信する</a>
+      </p>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>

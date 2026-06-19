@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>統計情報</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    フリマ社内システム　管理者コンソール
+    <span th:if="${loginUser != null}" th:text="${loginUser.name}">管理者</span>
+    <a th:href="@{/logout}">ログアウト</a>
+</header>
+
+<div class="admin-layout">
+
+    <nav class="admin-sidebar">
+        <h2>管理メニュー</h2>
+        <ul>
+            <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+            <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+            <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+            <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+            <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+            <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+            <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+            <li><a th:href="@{/auth/reports}">通報確認</a></li>
+            <li><a class="active" th:href="@{/admin/statistics}">統計情報閲覧</a></li>
+            <li><a th:href="@{/logout}">ログアウト</a></li>
+        </ul>
+    </nav>
+
+    <main class="admin-main">
+        <h1>統計情報</h1>
+
+        <!-- 日別/月別 切り替えフォーム -->
+        <form class="period-form" method="get" th:action="@{/admin/statistics}">
+            <label for="period">期間区分</label>
+            <select id="period" name="period" onchange="this.form.submit()">
+                <option value="daily"   th:selected="${period == 'daily'}">日別</option>
+                <option value="monthly" th:selected="${period == 'monthly'}">月別</option>
+            </select>
+            <button type="submit">表示</button>
+        </form>
+
+        <!-- サマリーカード -->
+        <section class="stats-section">
+            <h2>サマリー</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${userCount}">0</div>
+                    <div class="stat-label">社員数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${itemCount}">0</div>
+                    <div class="stat-label">総出品数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${dealCount}">0</div>
+                    <div class="stat-label">成約数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value"><span th:text="${dealRate}">0.0</span>%</div>
+                    <div class="stat-label">成約率</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${applicationCount}">0</div>
+                    <div class="stat-label">応募数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${transactionCount}">0</div>
+                    <div class="stat-label">取引数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${messageCount}">0</div>
+                    <div class="stat-label">メッセージ数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" th:text="${reportCount}">0</div>
+                    <div class="stat-label">通報数</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- カテゴリ別統計 -->
+        <section class="stats-section">
+            <h2>カテゴリ別統計</h2>
+
+            <p th:if="${#lists.isEmpty(categoryStats)}" class="no-data">データがありません。</p>
+
+            <table th:unless="${#lists.isEmpty(categoryStats)}">
+                <thead>
+                <tr>
+                    <th>カテゴリ</th>
+                    <th>出品数</th>
+                    <th>成約数</th>
+                    <th>成約率</th>
+                    <th class="bar-col">出品数グラフ</th>
+                    <th class="bar-col">成約数グラフ</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${categoryStats}">
+                    <td th:text="${row.categoryName}">カテゴリ</td>
+                    <td th:text="${row.listingCount}">0</td>
+                    <td th:text="${row.dealCount}">0</td>
+                    <td><span class="rate-badge" th:text="${row.rate} + '%'">0.0%</span></td>
+                    <td class="bar-cell">
+                        <div class="bar-wrap">
+                            <div class="bar-fill listing"
+                                 th:style="'width:' + ${row.listingCount * 100.0 / maxListingCount} + '%'"></div>
+                        </div>
+                    </td>
+                    <td class="bar-cell">
+                        <div class="bar-wrap">
+                            <div class="bar-fill deal"
+                                 th:style="'width:' + ${row.dealCount * 100.0 / maxDealCount} + '%'"></div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- 時系列統計 -->
+        <section class="stats-section">
+            <h2>
+                時系列統計
+                <span th:text="${period == 'monthly' ? '（月別）' : '（日別）'}">（日別）</span>
+            </h2>
+
+            <p th:if="${#lists.isEmpty(timeStats)}" class="no-data">データがありません。</p>
+
+            <table th:unless="${#lists.isEmpty(timeStats)}">
+                <thead>
+                <tr>
+                    <th>期間</th>
+                    <th>出品数</th>
+                    <th>成約数</th>
+                    <th>成約率</th>
+                    <th class="bar-col">出品数グラフ</th>
+                    <th class="bar-col">成約数グラフ</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${timeStats}">
+                    <td th:text="${row.label}">2026-06-19</td>
+                    <td th:text="${row.listingCount}">0</td>
+                    <td th:text="${row.dealCount}">0</td>
+                    <td><span class="rate-badge" th:text="${row.rate} + '%'">0.0%</span></td>
+                    <td class="bar-cell">
+                        <div class="bar-wrap">
+                            <div class="bar-fill listing"
+                                 th:style="'width:' + ${row.listingCount * 100.0 / maxListingCount} + '%'"></div>
+                        </div>
+                    </td>
+                    <td class="bar-cell">
+                        <div class="bar-wrap">
+                            <div class="bar-fill deal"
+                                 th:style="'width:' + ${row.dealCount * 100.0 / maxDealCount} + '%'"></div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+</html>

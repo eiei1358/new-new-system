@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>社員編集</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    <div>フリマ社内システム　管理者コンソール</div>
+    <div><a th:href="@{/logout}">ログアウト</a></div>
+</header>
+
+<nav>
+    <p><a th:href="@{/admin/users}">社員管理へ戻る</a></p>
+</nav>
+
+<main>
+    <h1>社員編集</h1>
+
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <form th:action="@{/admin/users/{id}/update(id=${user.userId})}" method="post">
+        <p>
+            <label>ID</label><br>
+            <span th:text="${user.userId}">26001</span>
+        </p>
+
+        <p>
+            <label>氏名</label><br>
+            <input type="text" name="name" th:value="${user.name}" required>
+        </p>
+
+        <p>
+            <label>メールアドレス</label><br>
+            <input type="email" name="email" th:value="${user.email}" required>
+        </p>
+
+        <p>
+            <label>権限</label><br>
+            <select name="role">
+                <option value="0" th:selected="${user.role == 0}">一般</option>
+                <option value="1" th:selected="${user.role == 1}">管理者</option>
+            </select>
+        </p>
+
+        <p>
+            <label>部署</label><br>
+            <input type="text" name="department" th:value="${user.department}">
+        </p>
+
+        <p>
+            <label>状態</label><br>
+            <select name="status">
+                <option value="0" th:selected="${user.status == 0}">有効</option>
+                <option value="1" th:selected="${user.status == 1}">利用制限中</option>
+            </select>
+        </p>
+
+        <button type="submit">更新</button>
+    </form>
+</main>
+
+</body>
+</html>

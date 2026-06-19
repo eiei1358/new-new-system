@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja"
+	  xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport"
+		  content="width=device-width, initial-scale=1.0">
+
+	<title>メッセージ一覧</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+
+<body>
+
+	<header>
+
+		<h1>
+			<a href="/item-101"
+			   th:href="@{/item-101}">
+				フリマ社内システム
+			</a>
+		</h1>
+
+		<nav>
+
+			<a href="/item-101"
+			   th:href="@{/item-101}">
+				🏠 ホーム
+			</a>
+
+			<a href="/search"
+			   th:href="@{/search}">
+				🔍 検索
+			</a>
+
+			<a href="/item/post"
+			   th:href="@{/item/post}">
+				➕ 出品
+			</a>
+
+			<a href="/messages"
+			   th:href="@{/messages}">
+				✉️ メッセージ
+			</a>
+
+			<a href="/mypage"
+			   th:href="@{/mypage}">
+				👤 マイページ
+			</a>
+
+		</nav>
+
+		<hr>
+
+		<p>
+			ログイン中：
+
+			<span th:text="${loginUser != null
+					? loginUser.name
+					: 'ゲスト'}">
+				山田太郎
+			</span>
+
+			<a href="/logout"
+			   th:href="@{/logout}">
+				ログアウト
+			</a>
+		</p>
+
+	</header>
+
+	<hr>
+
+	<main>
+
+		<h2>メッセージ一覧</h2>
+
+		<div th:if="${messages != null
+				and !#lists.isEmpty(messages)}">
+
+			<div th:each="message : ${messages}">
+
+				<p>
+					商品名：
+
+					<span th:text="${message['itemName'] != null
+							? message['itemName']
+							: '商品なし'}">
+						商品名
+					</span>
+				</p>
+
+				<p>
+					相手：
+
+					<span th:text="${message['otherUserName'] != null
+							? message['otherUserName']
+							: '不明'}">
+						相手ユーザー
+					</span>
+				</p>
+
+				<p>
+					メッセージ：
+
+					<span th:text="${message['latestMessage'] != null
+							? message['latestMessage']
+							: ''}">
+						最新メッセージ
+					</span>
+				</p>
+
+				<p>
+					日時：
+
+					<span th:text="${message['latestCreatedAt'] != null
+							? message['latestCreatedAt']
+							: '-'}">
+						-
+					</span>
+				</p>
+
+				<p th:if="${message['itemId'] != null and message['otherUserId'] != null}">
+					<a th:href="@{/messages/{itemId}/{otherUserId}(itemId=${message['itemId']}, otherUserId=${message['otherUserId']})}">
+						このメッセージを見る・返信する
+					</a>
+				</p>
+
+				<hr>
+
+			</div>
+
+		</div>
+
+		<div th:if="${messages == null
+				or #lists.isEmpty(messages)}">
+
+			<p>メッセージはありません。</p>
+
+		</div>
+
+		<p>
+			<a href="/item-101"
+			   th:href="@{/item-101}">
+				物品一覧へ戻る
+			</a>
+		</p>
+
+	</main>
+
+</body>
+</html>

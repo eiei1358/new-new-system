@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>物品詳細（監視）</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<header>
+    フリマ社内システム　管理者コンソール
+    <a th:href="@{/logout}">ログアウト</a>
+</header>
+<nav>
+    <h2>管理メニュー</h2>
+    <ul>
+        <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+        <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+        <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+        <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+        <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+        <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+        <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+        <li><a th:href="@{/auth/reports}">通報確認</a></li>
+        <li><a th:href="@{/auth/stats}">統計情報閲覧</a></li>
+    </ul>
+</nav>
+
+<main>
+    <h1>物品詳細（監視）</h1>
+    <p><a th:href="@{/auth/watch}">監視画面へ戻る</a></p>
+
+    <table border="1">
+        <tr><th>物品ID</th><td th:text="${item['itemId']}">1</td></tr>
+        <tr><th>物品名</th><td th:text="${item['name']}">物品名</td></tr>
+        <tr><th>説明</th><td th:text="${item['description']}">説明</td></tr>
+        <tr><th>出品者</th><td th:text="${item['sellerName']}">出品者</td></tr>
+        <tr><th>カテゴリ</th><td th:text="${item['categoryName']}">カテゴリ</td></tr>
+        <tr><th>状態</th><td th:text="${item['statusName']}">出品中</td></tr>
+        <tr><th>種別</th><td th:text="${item['typeName']}">有償</td></tr>
+        <tr><th>商品状態</th><td th:text="${item['conditionName']}">中古</td></tr>
+        <tr><th>価格</th><td th:text="${item['price']}">0</td></tr>
+        <tr><th>作成日時</th><td th:text="${item['createdAt']}">日時</td></tr>
+    </table>
+
+    <form th:action="@{/auth/users/restrict/{id}(id=${item['sellerId']}, back='/auth/watch')}" method="post">
+        <button type="submit" onclick="return confirm('この出品者を利用制限しますか？');">出品者を利用制限</button>
+    </form>
+
+    <form th:action="@{/auth/watch/items/delete/{id}(id=${item['itemId']})}" method="post">
+        <button type="submit" onclick="return confirm('この物品を削除しますか？');">この物品を削除</button>
+    </form>
+</main>
+</body>
+</html>

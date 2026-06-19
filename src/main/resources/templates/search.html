@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>検索キー管理</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    フリマ社内システム　管理者コンソール
+    <a th:href="@{/logout}">ログアウト</a>
+</header>
+
+<nav>
+    <h2>管理メニュー</h2>
+    <ul>
+        <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+        <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+        <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+        <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+        <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+        <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+        <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+        <li><a th:href="@{/auth/reports}">通報確認</a></li>
+        <li><a th:href="@{/auth/stats}">統計情報閲覧</a></li>
+    </ul>
+</nav>
+
+<main>
+    <h1>検索キー管理</h1>
+
+    <p th:if="${message}" th:text="${message}"></p>
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <section>
+        <h2 th:text="${editKeyword != null ? '検索キー編集' : '検索キー追加'}">検索キー追加</h2>
+
+        <form th:if="${editKeyword == null}" th:action="@{/auth/search-keys/add}" method="post">
+            <input type="text" name="keyword" required maxlength="100" placeholder="検索キー">
+            <button type="submit">追加</button>
+        </form>
+
+        <form th:if="${editKeyword != null}"
+              th:action="@{/auth/search-keys/update/{id}(id=${editKeyword['keywordId']})}"
+              method="post">
+            <input type="text" name="keyword" th:value="${editKeyword['keyword']}" required maxlength="100">
+            <button type="submit">更新</button>
+            <a th:href="@{/auth/search-keys}">キャンセル</a>
+        </form>
+    </section>
+
+    <section>
+        <h2>検索キー一覧</h2>
+
+        <p th:if="${keywords == null or #lists.isEmpty(keywords)}">検索キーは登録されていません。</p>
+
+        <table border="1" th:if="${keywords != null and !#lists.isEmpty(keywords)}">
+            <tr>
+                <th>ID</th>
+                <th>検索キー</th>
+                <th>状態</th>
+                <th>作成日時</th>
+                <th>操作</th>
+            </tr>
+            <tr th:each="k : ${keywords}">
+                <td th:text="${k['keywordId']}">1</td>
+                <td th:text="${k['keyword']}">キーワード</td>
+                <td th:text="${k['statusName']}">有効</td>
+                <td th:text="${k['createdAt']}">2026-06-19 00:00</td>
+                <td>
+                    <a th:href="@{/auth/search-keys/edit/{id}(id=${k['keywordId']})}">編集</a>
+
+                    <form th:action="@{/auth/search-keys/toggle/{id}(id=${k['keywordId']})}" method="post">
+                        <button type="submit" th:text="${k['status'] == 0 ? '無効にする' : '有効にする'}">切替</button>
+                    </form>
+
+                    <form th:action="@{/auth/search-keys/delete/{id}(id=${k['keywordId']})}" method="post">
+                        <button type="submit" onclick="return confirm('削除しますか？');">削除</button>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </section>
+</main>
+
+</body>
+</html>

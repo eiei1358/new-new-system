@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>トップ／物品一覧｜フリマ社内システム</title>
+	<link rel="stylesheet" href="/css/item101.css" th:href="@{/css/item101.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<div class="layout">
+	<aside class="sidebar">
+		<div class="brand">フリマ社内システム</div>
+		<nav>
+	<a href="/item-101" th:href="@{/item-101}">🏠 ホーム</a>
+	<a href="/search" th:href="@{/search}">🔍 検索</a>
+	<a href="/item/post" th:href="@{/item/post}">➕ 出品</a>
+	<a href="/messages" th:href="@{/messages}">✉️ メッセージ</a>
+	<a href="/mypage" th:href="@{/mypage}">👤 マイページ</a>
+</nav>
+	</aside>
+
+	<div class="main">
+		<header class="topbar">
+			<div class="page-title">物品一覧</div>
+			<div class="topbar-right">
+				<span class="bell" title="通知">🔔</span>
+				<span class="user"
+					  th:text="${loginUser != null ? loginUser.name : 'ゲスト'}">
+					テスト 太郎
+				</span>
+				<a class="logout" href="/logout" th:href="@{/logout}">ログアウト</a>
+			</div>
+			<div th:if="${previousLoginAt != null}">
+				前回ログイン：<span th:text="${#temporals.format(previousLoginAt, 'yyyy-MM-dd HH:mm')}">2026-06-19 10:00</span>
+			</div>
+		</header>
+
+		<div class="content">
+			<form class="search-bar" method="get"
+				  action="/item-101" th:action="@{/item-101}">
+				<div class="search-box">
+					<input type="text" name="keyword"
+						   th:value="${keyword}"
+						   placeholder="キーワード検索（商品名・説明）">
+					<button type="submit" class="icon-btn">🔍</button>
+				</div>
+
+				<div class="filters">
+					<select name="categoryId">
+						<option value="">すべてのカテゴリ</option>
+						<option th:each="c : ${categories}"
+								th:value="${c.categoryId}"
+								th:text="${c.name}"
+								th:selected="${categoryId != null && categoryId == c.categoryId}">
+							カテゴリ
+						</option>
+					</select>
+
+					<select name="status">
+						<option value="" th:selected="${status == null}">すべての状態</option>
+						<option value="0" th:selected="${status == 0}">出品中</option>
+						<option value="1" th:selected="${status == 1}">成約中</option>
+						<option value="2" th:selected="${status == 2}">譲渡完了</option>
+					</select>
+
+					<select name="sort">
+						<option value="newest"
+								th:selected="${sort == null || sort == '' || sort == 'newest'}">
+							新着順
+						</option>
+						<option value="deadline" th:selected="${sort == 'deadline'}">
+							期限が近い順
+						</option>
+					</select>
+
+					<button type="submit" class="btn">検索</button>
+					<a class="btn" href="/item-101" th:href="@{/item-101}">クリア</a>
+				</div>
+			</form>
+
+			<div class="result-head">
+				<span>
+					検索結果：
+					<strong th:text="${resultCount != null ? resultCount : 0}">0</strong>
+					件
+				</span>
+				<a class="btn primary" href="/item/post" th:href="@{/item/post}">
+					＋ 出品する
+				</a>
+			</div>
+
+			<div class="grid" th:if="${resultCount != null && resultCount > 0}">
+				<a class="card"
+				   th:each="item : ${items}"
+				   href="#"
+				   th:href="@{/detail/{id}(id=${item.item_id})}">
+					<div class="thumb">
+						<img th:if="${item.image_url != null}"
+							 th:src="${item.image_url}" alt="商品画像">
+						<span class="no-image" th:if="${item.image_url == null}">
+							NO IMAGE
+						</span>
+						<span class="status-badge"
+							  th:text="${item.status_name != null ? item.status_name :
+								(item.status == 0 ? '出品中' :
+								(item.status == 1 ? '成約中' :
+								(item.status == 2 ? '譲渡完了' : '不明')))}">出品中</span>
+					</div>
+
+					<div class="card-body">
+						<div class="cat"
+							 th:text="${item.category_name != null ? item.category_name : '未分類'}">
+							カテゴリ
+						</div>
+						<div class="name" th:text="${item.name}">商品名</div>
+						<div class="meta">
+							<span class="price"
+								  th:text="${item.price != null ? '¥' + #numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT') : '無料'}">
+								¥1,500
+							</span>
+							<span class="deadline"
+								  th:text="${item.deadline != null ? '期限：' + item.deadline : '期限なし'}">
+								期限：2026-06-30
+							</span>
+						</div>
+						<div class="cond"
+							 th:text="${item.condition_name != null ? item.condition_name :
+							 	(item.condition == 0 ? '新品' :
+							 	(item.condition == 1 ? '中古' :
+							 	(item.condition == 2 ? '傷あり' : '-')))}">中古</div>
+					</div>
+				</a>
+			</div>
+
+			<div class="empty" th:if="${resultCount == null || resultCount == 0}">
+				該当する物品がありません。
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>

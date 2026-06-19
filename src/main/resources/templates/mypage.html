@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>マイページ｜フリマ社内システム</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<header>
+	<h1><a href="/item-101" th:href="@{/item-101}">フリマ社内システム</a></h1>
+	<nav>
+		<a href="/item-101" th:href="@{/item-101}">🏠 ホーム</a>
+		<a href="/search" th:href="@{/search}">🔍 検索</a>
+		<a href="/item/post" th:href="@{/item/post}">➕ 出品</a>
+		<a href="/messages" th:href="@{/messages}">✉️ メッセージ</a>
+		<a href="/mypage" th:href="@{/mypage}">👤 マイページ</a>
+	</nav>
+	<p>
+		<span th:text="${user != null ? user.name : 'ゲスト'}">ユーザー</span>
+		<a href="/logout" th:href="@{/logout}">ログアウト</a>
+	</p>
+</header>
+<hr>
+
+<main>
+	<h2>マイページ</h2>
+
+	<p th:if="${error}" th:text="${error}">更新エラー</p>
+
+	<section>
+		<h3>会員情報変更</h3>
+
+		<form action="/mypage/update" th:action="@{/mypage/update}" method="post">
+			<label for="name">名前</label>
+			<input id="name" type="text" name="name" th:value="${user.name}" required>
+
+			<label for="email">メールアドレス</label>
+			<input id="email" type="email" name="email" th:value="${user.email}" required>
+
+			<label for="password">新しいパスワード</label>
+			<input id="password" type="password" name="password"
+				   placeholder="変更する場合のみ入力">
+
+			<button type="submit">変更する</button>
+		</form>
+	</section>
+
+	<hr>
+
+	<section>
+		<h3>自身の出品物一覧</h3>
+
+		<p th:if="${items == null || #lists.isEmpty(items)}">
+			現在出品している商品はありません。
+		</p>
+
+		<div th:each="item : ${items}">
+			<a th:href="@{/detail/{id}(id=${item.itemId})}">
+				<img th:if="${itemImages[item.itemId] != null}"
+					 th:src="${itemImages[item.itemId]}"
+					 alt="商品画像" width="150">
+				<p th:text="${item.name}">商品名</p>
+				<p th:text="${item.price != null ? item.price + '円' : '0円'}">0円</p>
+			</a>
+			<hr>
+		</div>
+	</section>
+
+	<section>
+		<h3>出品履歴</h3>
+
+		<p th:if="${sellHistory == null || #lists.isEmpty(sellHistory)}">
+			出品履歴はありません。
+		</p>
+
+		<div th:each="item : ${sellHistory}">
+			<a th:href="@{/detail/{id}(id=${item.itemId})}">
+				<img th:if="${itemImages[item.itemId] != null}"
+					 th:src="${itemImages[item.itemId]}"
+					 alt="商品画像" width="150">
+				<p th:text="${item.name}">商品名</p>
+				<p th:text="${item.status == 1 ? '成約中' : (item.status == 2 ? '譲渡完了' : '不明')}">状態</p>
+			</a>
+			<p><a th:href="@{/transfer/item/{id}(id=${item.itemId})}">譲渡QR・状況確認</a></p>
+			<hr>
+		</div>
+	</section>
+
+	<section>
+		<h3>購入履歴</h3>
+
+		<p th:if="${buyHistory == null || #lists.isEmpty(buyHistory)}">
+			購入履歴はありません。
+		</p>
+
+		<div th:each="item : ${buyHistory}">
+			<a th:href="@{/detail/{id}(id=${item.itemId})}">
+				<img th:if="${itemImages[item.itemId] != null}"
+					 th:src="${itemImages[item.itemId]}"
+					 alt="商品画像" width="150">
+				<p th:text="${item.name}">商品名</p>
+				<p>購入済み</p>
+			</a>
+			<p><a th:href="@{/transfer/item/{id}(id=${item.itemId})}">譲渡QR・状況確認</a></p>
+			<hr>
+		</div>
+	</section>
+</main>
+</body>
+</html>

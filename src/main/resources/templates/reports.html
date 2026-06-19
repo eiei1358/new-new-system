@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>通報確認</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<header>
+    フリマ社内システム　管理者コンソール
+    <a th:href="@{/logout}">ログアウト</a>
+</header>
+<nav>
+    <h2>管理メニュー</h2>
+    <ul>
+        <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+        <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+        <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+        <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+        <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+        <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+        <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+        <li><a th:href="@{/auth/reports}">通報確認</a></li>
+        <li><a th:href="@{/auth/stats}">統計情報閲覧</a></li>
+    </ul>
+</nav>
+
+<main>
+    <h1>通報確認</h1>
+
+    <p th:if="${message}" th:text="${message}"></p>
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <p>
+        <a th:href="@{/auth/reports}">すべて</a>
+        <a th:href="@{/auth/reports(status=0)}">未対応</a>
+        <a th:href="@{/auth/reports(status=1)}">対応中</a>
+        <a th:href="@{/auth/reports(status=2)}">対応済み</a>
+    </p>
+
+    <p th:if="${reports == null or #lists.isEmpty(reports)}">通報はありません。</p>
+
+    <table border="1" th:if="${reports != null and !#lists.isEmpty(reports)}">
+        <tr>
+            <th>ID</th>
+            <th>対象</th>
+            <th>対象ID</th>
+            <th>通報者</th>
+            <th>理由</th>
+            <th>状態</th>
+            <th>通報日時</th>
+            <th>操作</th>
+        </tr>
+        <tr th:each="report : ${reports}">
+            <td th:text="${report['reportId']}">1</td>
+            <td th:text="${report['targetTypeName']}">物品</td>
+            <td th:text="${report['targetId']}">1</td>
+            <td th:text="${report['reporterName']}">通報者</td>
+            <td th:text="${report['reason']}">理由</td>
+            <td th:text="${report['statusName']}">未対応</td>
+            <td th:text="${report['createdAt']}">日時</td>
+            <td><a th:href="@{/auth/reports/{id}(id=${report['reportId']})}">詳細</a></td>
+        </tr>
+    </table>
+</main>
+</body>
+</html>

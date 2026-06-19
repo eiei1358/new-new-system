@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>社員追加</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    <div>フリマ社内システム　管理者コンソール</div>
+    <div><a th:href="@{/logout}">ログアウト</a></div>
+</header>
+
+<nav>
+    <p><a th:href="@{/admin/users}">社員管理へ戻る</a></p>
+</nav>
+
+<main>
+    <h1>社員追加</h1>
+
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <form th:action="@{/admin/users/create}" method="post">
+        <p>
+            <label>氏名</label><br>
+            <input type="text" name="name" required>
+        </p>
+
+        <p>
+            <label>メールアドレス</label><br>
+            <input type="email" name="email" required>
+        </p>
+
+        <p>
+            <label>初期パスワード</label><br>
+            <input type="text" name="password" placeholder="空欄の場合は自動発行">
+        </p>
+
+        <p>
+            <label>権限</label><br>
+            <select name="role">
+                <option value="0">一般</option>
+                <option value="1">管理者</option>
+            </select>
+        </p>
+
+        <p>
+            <label>部署</label><br>
+            <input type="text" name="department">
+        </p>
+
+        <button type="submit">追加</button>
+    </form>
+</main>
+
+</body>
+</html>

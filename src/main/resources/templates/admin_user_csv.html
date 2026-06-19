@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>社員CSV一括登録</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    <div>フリマ社内システム　管理者コンソール</div>
+    <div><a th:href="@{/logout}">ログアウト</a></div>
+</header>
+
+<nav>
+    <p><a th:href="@{/admin/users}">社員管理へ戻る</a></p>
+</nav>
+
+<main>
+    <h1>社員CSV一括登録</h1>
+
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <p>CSV形式は次のどちらでも登録できます。</p>
+    <pre>user_id,name,email,role,department,password
+26080,山田太郎,yamada@example.com,0,営業部,</pre>
+    <pre>社員番号,氏名,メールアドレス,権限,部署,パスワード
+26081,佐藤花子,sato@example.com,一般,開発部,</pre>
+    <p>パスワードを空欄にすると仮パスワードを自動発行し、メール設定が有効な場合は通知します。権限は 0=一般、1=管理者 です。</p>
+
+    <form th:action="@{/admin/users/csv}" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".csv,text/csv" required>
+        <button type="submit">CSV登録</button>
+    </form>
+</main>
+
+</body>
+</html>

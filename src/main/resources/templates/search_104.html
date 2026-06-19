@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>物品検索｜フリマ社内システム</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<header>
+	<h1><a href="/item-101" th:href="@{/item-101}">フリマ社内システム</a></h1>
+	<nav>
+	<a href="/item-101" th:href="@{/item-101}">🏠 ホーム</a>
+	<a href="/search" th:href="@{/search}">🔍 検索</a>
+	<a href="/item/post" th:href="@{/item/post}">➕ 出品</a>
+	<a href="/messages" th:href="@{/messages}">✉️ メッセージ</a>
+	<a href="/mypage" th:href="@{/mypage}">👤 マイページ</a>
+</nav>
+	<p>
+		<span th:text="${loginUser != null ? loginUser.name : 'ゲスト'}">山田太郎</span>
+		<a href="/logout" th:href="@{/logout}">ログアウト</a>
+	</p>
+</header>
+<hr>
+
+<main>
+	<h2>物品検索</h2>
+
+	<form method="get" action="/search" th:action="@{/search}">
+		<div>
+			<label for="keyword">キーワード</label>
+			<input type="text" id="keyword" name="keyword"
+				   th:value="${keyword}" placeholder="商品名・説明">
+		</div><br>
+
+		<div>
+			<label for="priceRange">金額</label>
+			<select id="priceRange" name="priceRange">
+				<option value="" th:selected="${priceRange == null || priceRange == ''}">すべての金額</option>
+				<option value="1" th:selected="${priceRange == '1'}">1,000円以下</option>
+				<option value="2" th:selected="${priceRange == '2'}">1,000円～5,000円</option>
+				<option value="3" th:selected="${priceRange == '3'}">5,000円～10,000円</option>
+				<option value="4" th:selected="${priceRange == '4'}">10,000円以上</option>
+			</select>
+		</div><br>
+
+		<div>
+			<label for="categoryId">カテゴリ</label>
+			<select id="categoryId" name="categoryId">
+				<option value="" th:selected="${categoryId == null}">すべてのカテゴリ</option>
+				<option th:each="category : ${categories}"
+						th:value="${category.categoryId}"
+						th:text="${category.name}"
+						th:selected="${categoryId != null && categoryId == category.categoryId}">
+					カテゴリ
+				</option>
+			</select>
+		</div><br>
+
+		<div>
+			<label for="condition">商品の状態</label>
+			<select id="condition" name="condition">
+				<option value="" th:selected="${condition == null}">すべての商品状態</option>
+				<option value="0" th:selected="${condition != null && condition == 0}">新品</option>
+				<option value="1" th:selected="${condition != null && condition == 1}">中古</option>
+				<option value="2" th:selected="${condition != null && condition == 2}">傷あり</option>
+			</select>
+		</div><br>
+
+		<div>
+			<label for="place">受け取り場所</label>
+			<select id="place" name="place">
+				<option value="" th:selected="${place == null}">すべての場所</option>
+				<option value="0" th:selected="${place != null && place == 0}">神田</option>
+				<option value="1" th:selected="${place != null && place == 1}">横浜</option>
+			</select>
+		</div><br>
+
+		<div>
+			<label for="sort">並び順</label>
+			<select id="sort" name="sort">
+				<option value="" th:selected="${sort == null || sort == ''}">新着順</option>
+				<option value="high" th:selected="${sort == 'high'}">価格が高い順</option>
+				<option value="low" th:selected="${sort == 'low'}">価格が低い順</option>
+			</select>
+		</div><br>
+
+		<button type="submit">検索</button>
+		<a href="/search" th:href="@{/search}">条件をクリア</a>
+	</form>
+
+	<hr>
+
+	<p>
+		検索結果：
+		<strong th:text="${resultCount != null ? resultCount : 0}">0</strong>件
+	</p>
+	<p><a href="/item/post" th:href="@{/item/post}">＋ 出品する</a></p>
+
+	<div th:if="${items != null && !#lists.isEmpty(items)}">
+		<div th:each="item : ${items}">
+			<h3>
+				<a href="#" th:href="@{/detail/{id}(id=${item.itemId})}"
+				   th:text="${item.name}">商品名</a>
+			</h3>
+
+			<p>
+				カテゴリ：
+				<span th:each="category : ${categories}"
+					  th:if="${category.categoryId == item.categoryId}"
+					  th:text="${category.name}">カテゴリ</span>
+				<span th:if="${item.categoryId == null}">未分類</span>
+			</p>
+
+			<p>説明：
+				<span th:text="${#strings.isEmpty(item.description) ? '説明はありません' : item.description}">説明</span>
+			</p>
+
+			<p>価格：
+				<span th:text="${item.price != null ? '￥' + #numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT') : '無料'}">
+					￥1,000
+				</span>
+			</p>
+
+			<p>状態：
+				<span th:text="${item.condition == 0 ? '新品' :
+					(item.condition == 1 ? '中古' :
+					(item.condition == 2 ? '傷あり' : '不明'))}">新品</span>
+			</p>
+
+			<p>出品状況：
+				<span th:text="${item.status == 0 ? '出品中' :
+					(item.status == 1 ? '成約中' :
+					(item.status == 2 ? '譲渡完了' : '不明'))}">出品中</span>
+			</p>
+
+			<p>受け取り場所：
+				<span th:text="${item.place == 0 ? '神田' :
+					(item.place == 1 ? '横浜' : '不明')}">神田</span>
+			</p>
+
+			<p>期限：
+				<span th:text="${item.deadline != null ? #temporals.format(item.deadline, 'yyyy/MM/dd') : '設定なし'}">
+					2026/12/31
+				</span>
+			</p>
+
+			<p>
+				<a href="#" th:href="@{/detail/{id}(id=${item.itemId})}">詳細を見る</a>
+			</p>
+			<hr>
+		</div>
+	</div>
+
+	<p th:if="${items == null || #lists.isEmpty(items)}">該当する物品がありません。</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>メッセージ送信完了</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    <h1><a th:href="@{/item-101}">フリマ</a></h1>
+    <div>
+        <span th:text="${loginUser.name + 'さん'}">ユーザーさん</span>
+        <a th:href="@{/logout}">ログアウト</a>
+    </div>
+</header>
+
+<main>
+    <h2>メッセージを送信しました</h2>
+    <p>出品者にメッセージを送信しました。</p>
+    <p>
+        <a th:href="@{/detail/{id}(id=${itemId})}">商品詳細へ戻る</a>
+        <a th:href="@{/messages}">メッセージ一覧へ</a>
+        <a th:href="@{/item-101}">商品一覧へ</a>
+    </p>
+</main>
+
+</body>
+</html>

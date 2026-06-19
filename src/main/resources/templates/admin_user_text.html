@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>社員テキスト一括登録</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    <div>フリマ社内システム　管理者コンソール</div>
+    <div><a th:href="@{/logout}">ログアウト</a></div>
+</header>
+
+<nav>
+    <p><a th:href="@{/admin/users}">社員管理へ戻る</a></p>
+</nav>
+
+<main>
+    <h1>社員テキスト一括登録</h1>
+
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <p>1行に1人ずつ、カンマ区切りで入力してください。</p>
+    <pre>user_id,name,email,role,department,password
+26080,山田太郎,yamada@example.com,0,営業部,
+佐藤花子,sato@example.com,1,開発部,</pre>
+
+    <form th:action="@{/admin/users/text}" method="post">
+        <textarea name="text" rows="12" cols="80" required></textarea><br>
+        <button type="submit">テキスト登録</button>
+    </form>
+</main>
+
+</body>
+</html>

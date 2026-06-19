@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>譲渡QRコード</title>
+<link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+<script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+  <h1><a th:href="@{/item-101}">フリマ</a></h1>
+  <nav>
+    <a th:href="@{/item-101}">ホーム</a>
+    <a th:href="@{/messages}">メッセージ</a>
+    <a th:href="@{/mypage}">マイページ</a>
+    <a th:href="@{/logout}">ログアウト</a>
+  </nav>
+</header>
+
+<main class="transfer-page">
+  <div class="transfer-card">
+    <h2>譲渡QRコード</h2>
+
+    <p>物品：<span th:text="${transaction['itemName']}">物品名</span></p>
+    <p>出品者：<span th:text="${transaction['sellerName']}">出品者</span></p>
+    <p>譲渡相手：<span th:text="${transaction['buyerName']}">譲渡相手</span></p>
+
+    <p class="transfer-id">
+      譲渡ID：<span th:text="${transferCode}">transferCode</span>
+    </p>
+
+    <p>
+      確認URL：<br>
+      <span th:text="${transferUrl}">URL</span>
+    </p>
+
+    <img class="qr-image" th:src="@{/transfer/qr/{code}(code=${transferCode})}" alt="QRコード">
+
+    <p>
+      <a th:href="@{/transfer/status/{code}(code=${transferCode})}">譲渡状況を確認する</a>
+    </p>
+
+    <p>
+      <a th:href="@{/detail/{id}(id=${transaction['itemId']})}">物品詳細へ戻る</a>
+    </p>
+  </div>
+</main>
+
+</body>
+</html>

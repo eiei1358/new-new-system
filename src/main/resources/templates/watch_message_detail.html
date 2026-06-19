@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>メッセージ詳細（監視）</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<header>
+    フリマ社内システム　管理者コンソール
+    <a th:href="@{/logout}">ログアウト</a>
+</header>
+<nav>
+    <h2>管理メニュー</h2>
+    <ul>
+        <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+        <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+        <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+        <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+        <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+        <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+        <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+        <li><a th:href="@{/auth/reports}">通報確認</a></li>
+        <li><a th:href="@{/auth/stats}">統計情報閲覧</a></li>
+    </ul>
+</nav>
+
+<main>
+    <h1>メッセージ詳細（監視）</h1>
+    <p><a th:href="@{/auth/watch}">監視画面へ戻る</a></p>
+
+    <table border="1">
+        <tr><th>メッセージID</th><td th:text="${message['messageId']}">1</td></tr>
+        <tr><th>商品</th><td th:text="${message['itemName']}">商品</td></tr>
+        <tr><th>送信者</th><td th:text="${message['senderName']}">送信者</td></tr>
+        <tr><th>受信者</th><td th:text="${message['receiverName']}">受信者</td></tr>
+        <tr><th>内容</th><td th:text="${message['content']}">内容</td></tr>
+        <tr><th>作成日時</th><td th:text="${message['createdAt']}">日時</td></tr>
+    </table>
+
+    <form th:action="@{/auth/users/restrict/{id}(id=${message['senderId']}, back='/auth/watch')}" method="post">
+        <button type="submit" onclick="return confirm('この送信者を利用制限しますか？');">送信者を利用制限</button>
+    </form>
+
+    <form th:action="@{/auth/watch/messages/delete/{id}(id=${message['messageId']})}" method="post">
+        <button type="submit" onclick="return confirm('このメッセージを削除しますか？');">このメッセージを削除</button>
+    </form>
+</main>
+</body>
+</html>

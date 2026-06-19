@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>出品確認｜フリマ社内システム</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+<header>
+	<h1><a href="/item-101" th:href="@{/item-101}">フリマ社内システム</a></h1>
+	<nav>
+		<a href="/item-101" th:href="@{/item-101}">🏠 ホーム</a>
+		<a href="/search" th:href="@{/search}">🔍 検索</a>
+		<a href="/item/post" th:href="@{/item/post}">➕ 出品</a>
+		<a href="/messages" th:href="@{/messages}">✉️ メッセージ</a>
+		<a href="/mypage" th:href="@{/mypage}">👤 マイページ</a>
+	</nav>
+	<p>
+		<span th:text="${loginUser != null ? loginUser.name : 'ゲスト'}">ユーザー</span>
+		<a href="/logout" th:href="@{/logout}">ログアウト</a>
+	</p>
+</header>
+<hr>
+
+<main>
+	<h2>出品確認</h2>
+
+	<p th:if="${error}" th:text="${error}">登録エラー</p>
+
+	<div th:if="${imageUrls != null && !#lists.isEmpty(imageUrls)}">
+		<img th:each="imageUrl : ${imageUrls}"
+			 th:src="${imageUrl}"
+			 alt="出品画像"
+			 width="180">
+	</div>
+
+	<p th:if="${imageUrls == null || #lists.isEmpty(imageUrls)}">
+		画像は選択されていません。
+	</p>
+
+	<table border="1">
+		<tr>
+			<th>物品名</th>
+			<td th:text="${postForm.name}">商品名</td>
+		</tr>
+		<tr>
+			<th>説明</th>
+			<td th:text="${#strings.isEmpty(postForm.description) ? '説明なし' : postForm.description}">説明</td>
+		</tr>
+		<tr>
+			<th>カテゴリ</th>
+			<td th:text="${categoryName}">カテゴリ</td>
+		</tr>
+		<tr>
+			<th>物品状態</th>
+			<td th:text="${postForm.condition == 0 ? '新品' : (postForm.condition == 1 ? '中古' : '傷あり')}">状態</td>
+		</tr>
+		<tr>
+			<th>受け取り場所</th>
+			<td th:text="${postForm.place == 0 ? '神田' : '横浜'}">場所</td>
+		</tr>
+		<tr>
+			<th>価格条件</th>
+			<td th:text="${postForm.type == 0 ? '無償' : (postForm.type == 1 ? '有償' : 'オークション方式')}">価格条件</td>
+		</tr>
+		<tr>
+			<th>希望金額</th>
+			<td th:text="${postForm.type == 0 ? '0円' : postForm.price + '円'}">0円</td>
+		</tr>
+		<tr>
+			<th>登録期限</th>
+			<td th:text="${postForm.deadline}">2026-12-31</td>
+		</tr>
+	</table>
+
+	<p>
+		<a href="/item/post" th:href="@{/item/post}">編集する</a>
+	</p>
+
+	<form action="/item/complete"
+		  th:action="@{/item/complete}"
+		  method="post"
+		  th:object="${postForm}">
+
+		<input type="hidden" th:field="*{name}">
+		<input type="hidden" th:field="*{description}">
+		<input type="hidden" th:field="*{categoryId}">
+		<input type="hidden" th:field="*{condition}">
+		<input type="hidden" th:field="*{price}">
+		<input type="hidden" th:field="*{type}">
+		<input type="hidden" th:field="*{deadline}">
+		<input type="hidden" th:field="*{place}">
+
+		<button type="submit">出品確定</button>
+	</form>
+</main>
+</body>
+</html>

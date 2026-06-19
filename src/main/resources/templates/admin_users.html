@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>社員管理</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    <div>フリマ社内システム　管理者コンソール</div>
+    <div>
+        <span th:if="${loginUser != null}" th:text="${loginUser.name + ' さん'}">管理者さん</span>
+        <a th:href="@{/logout}">ログアウト</a>
+    </div>
+</header>
+
+<nav>
+    <h2>管理メニュー</h2>
+    <ul>
+        <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+        <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+        <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+        <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+        <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+        <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+        <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+        <li><a th:href="@{/auth/reports}">通報確認</a></li>
+        <li><a th:href="@{/auth/stats}">統計情報閲覧</a></li>
+    </ul>
+</nav>
+
+<main>
+    <h1>社員管理</h1>
+
+    <p th:if="${message}" th:text="${message}"></p>
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <div th:if="${tempPassword}">
+        <p>仮パスワード：</p>
+        <p th:text="${tempPassword}"></p>
+    </div>
+
+    <div th:if="${tempPasswords}">
+        <p>登録した社員の仮パスワード：</p>
+        <ul>
+            <li th:each="value : ${tempPasswords}" th:text="${value}"></li>
+        </ul>
+    </div>
+
+    <div th:if="${errors}">
+        <p>登録できなかった行：</p>
+        <ul>
+            <li th:each="value : ${errors}" th:text="${value}"></li>
+        </ul>
+    </div>
+
+    <p>
+        <a th:href="@{/admin/users/new}">社員追加</a>
+        ｜ <a th:href="@{/admin/users/csv}">社員CSV一括登録</a>
+        ｜ <a th:href="@{/admin/users/text}">テキスト一括登録</a>
+    </p>
+
+    <form th:action="@{/admin/users}" method="get">
+        <label>キーワード</label>
+        <input type="text" name="keyword" th:value="${keyword}" placeholder="氏名・メール・部署">
+
+        <label>状態</label>
+        <select name="status">
+            <option value="" th:selected="${status == null}">すべて</option>
+            <option value="0" th:selected="${status != null and status == 0}">有効</option>
+            <option value="1" th:selected="${status != null and status == 1}">利用制限中</option>
+        </select>
+
+        <button type="submit">検索</button>
+    </form>
+
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>氏名</th>
+            <th>メール</th>
+            <th>権限</th>
+            <th>部署</th>
+            <th>状態</th>
+            <th>仮パスワード</th>
+            <th>失敗回数</th>
+            <th>操作</th>
+        </tr>
+        <tr th:each="user : ${users}">
+            <td th:text="${user.userId}">26001</td>
+            <td th:text="${user.name}">山田太郎</td>
+            <td th:text="${user.email}">taro@example.com</td>
+            <td th:text="${user.role == 1 ? '管理者' : '一般'}">一般</td>
+            <td th:text="${user.department}">営業部</td>
+            <td th:text="${user.status == 0 ? '有効' : '利用制限中'}">有効</td>
+            <td th:text="${user.temporaryPassword == true ? '発行中' : '-'}">-</td>
+            <td th:text="${user.loginFailCount}">0</td>
+            <td>
+                <a th:href="@{/admin/users/{id}/edit(id=${user.userId})}">編集</a>
+
+                <form th:action="@{/admin/users/{id}/reset-password(id=${user.userId})}" method="post">
+                    <button type="submit">パスワードリセット</button>
+                </form>
+
+                <form th:if="${user.status == 0}" th:action="@{/admin/users/{id}/restrict(id=${user.userId})}" method="post">
+                    <button type="submit">利用制限</button>
+                </form>
+
+                <form th:if="${user.status == 1}" th:action="@{/admin/users/{id}/unrestrict(id=${user.userId})}" method="post">
+                    <button type="submit">制限解除</button>
+                </form>
+
+                <form th:action="@{/admin/users/{id}/delete(id=${user.userId})}" method="post" onsubmit="return confirm('この社員を削除しますか？');">
+                    <button type="submit">削除</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+</main>
+
+</body>
+</html>

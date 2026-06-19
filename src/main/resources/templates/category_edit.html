@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>カテゴリー編集</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <script th:src="@{/js/app.js}" src="/js/app.js" defer></script>
+</head>
+<body>
+
+<header>
+    フリマ社内システム　管理者コンソール
+    <a th:href="@{/logout}">ログアウト</a>
+</header>
+
+<nav>
+    <h2>管理メニュー</h2>
+    <ul>
+        <li><a th:href="@{/admin/users}">社員情報管理</a></li>
+        <li><a th:href="@{/auth/categories}">カテゴリ管理</a></li>
+        <li><a th:href="@{/auth/search-keys}">検索キー管理</a></li>
+        <li><a th:href="@{/auth/watch}">不適切コンテンツ監視</a></li>
+        <li><a th:href="@{/auth/ng-keywords}">NGキーワード登録</a></li>
+        <li><a th:href="@{/auth/items/delete}">物品削除</a></li>
+        <li><a th:href="@{/auth/messages/delete}">メッセージ削除</a></li>
+        <li><a th:href="@{/auth/reports}">通報確認</a></li>
+        <li><a th:href="@{/auth/stats}">統計情報閲覧</a></li>
+    </ul>
+</nav>
+
+<main>
+    <h1>カテゴリー編集</h1>
+
+    <p th:if="${error}" th:text="${error}"></p>
+
+    <form th:action="@{/auth/categories/update}" method="post">
+        <input type="hidden" name="categoryId" th:value="${category.categoryId}">
+
+        <table>
+            <tr>
+                <th>カテゴリID</th>
+                <td th:text="${category.categoryId}">1</td>
+            </tr>
+            <tr>
+                <th>カテゴリ名</th>
+                <td>
+                    <input type="text" name="name" th:value="${category.name}" required maxlength="50">
+                </td>
+            </tr>
+        </table>
+
+        <p>
+            <button type="submit">更新</button>
+            <a th:href="@{/auth/categories}">戻る</a>
+        </p>
+    </form>
+</main>
+
+</body>
+</html>
