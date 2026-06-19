@@ -39,15 +39,8 @@
         <h1>統計情報</h1>
         <p class="stats-lead">システムの利用状況を確認し、今後の改善計画に活用するための画面です。</p>
 
-        <!-- 絞り込みフォーム（期間区分・カテゴリ） -->
+        <!-- 絞り込みフォーム（カテゴリ・期間区分・対象月） -->
         <form class="stats-filter-form" method="get" th:action="@{/admin/statistics}">
-            <div class="filter-item">
-                <label for="period">期間区分</label>
-                <select id="period" name="period">
-                    <option value="daily"   th:selected="${period == 'daily'}">日別</option>
-                    <option value="monthly" th:selected="${period == 'monthly'}">月別</option>
-                </select>
-            </div>
             <div class="filter-item">
                 <label for="categoryId">カテゴリ</label>
                 <select id="categoryId" name="categoryId">
@@ -57,6 +50,13 @@
                             th:text="${category.name}"
                             th:selected="${selectedCategoryId != null and selectedCategoryId == category.categoryId}">
                     </option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label for="period">期間区分</label>
+                <select id="period" name="period">
+                    <option value="daily"   th:selected="${period == 'daily'}">日別</option>
+                    <option value="monthly" th:selected="${period == 'monthly'}">月別</option>
                 </select>
             </div>
             <div class="filter-item">
